@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from urllib.parse import quote_plus, urlencode
+
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 from flask import Flask, redirect, session, url_for, request, jsonify, render_template
