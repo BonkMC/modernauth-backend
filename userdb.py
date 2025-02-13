@@ -1,5 +1,3 @@
-# Write a api based database: with flask without using sqlite3, using json to store data
-
 import os
 import flask
 from flask import Flask, request, jsonify
@@ -7,13 +5,19 @@ import json
 
 app = Flask(__name__)
 
-class Database:
-    def __init__(self):
+class UserDB:
+    def __init__(self, filename="database.json"):
         self.data = {}
+        self.filename = filename
+
+    def save(self):
+        with open(self.filename, "w") as f:
+            json.dump(self.data, f)
 
     def signup(self, username, auth0_feedback):
         if username not in self.data:
             self.data[username] = auth0_feedback
+            self.save()
             return True
         return False
 
@@ -22,9 +26,8 @@ class Database:
             return True
         return False
 
-db = Database()
+db = UserDB()
 
-#create flask api post gets for signing up and logiging in
 @app.route('/signup', methods=['POST'])
 def signup():
     username = request.json['username']

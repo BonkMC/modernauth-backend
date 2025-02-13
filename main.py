@@ -1,6 +1,6 @@
 import os
-import sqlite3
-from urllib.parse import quote_plus, urlencode
+import time
+from userdb import UserDB
 
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
@@ -11,6 +11,7 @@ load_dotenv()
 # rewrite reference.py cleanly and better
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY")
+userdb = UserDB()
 
 oauth = OAuth(app)
 oauth.register(
@@ -21,3 +22,4 @@ oauth.register(
     server_metadata_url=f"https://{os.getenv('AUTH0_DOMAIN')}/.well-known/openid-configuration",
 )
 
+@app.route("/signup/<token>", methods=["POST"])
