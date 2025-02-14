@@ -1,62 +1,52 @@
-'''
-Token System designed for the plugin, this is not really useful, but is a possible use.
-It is likely much better to simply keep tokens on the server plugin side's memory rather than have this database system.
-'''
-import os
-import time
-from flask import Flask, request, jsonify
-import json
-
-app = Flask(__name__)
+# tokensystem.py
+import time, random, string, json
 
 class TokenSystemDB:
     def __init__(self, filename="tokensystem.json"):
-        self.data = {}
         self.filename = filename
+        self.data = {}
+        self.load()
+
+    def load(self):
+        try:
+            with open(self.filename, "r") as f:
+                self.data = json.load(f)
+        except:
+            self.data = {}
 
     def save(self):
-        self.purge_expired_tokens()
         with open(self.filename, "w") as f:
             json.dump(self.data, f)
 
-    def create_token(self, username, token):
-        expiration_time = time.time() + 600
-        self.data[token] = {"username": username, "expiration_time": expiration_time}
+    def create_token(self, username, token=None, ttl=600):
+        if not token:
+            token = "".join(random.choices(string.ascii_letters + string.digits, k=32))
+        self.purge_expired_tokens()
+        self.data[token] = {
+            "username": username,
+            "expiration_time": time.time() + ttl,
+            "authorized": False
+        }
         self.save()
-        return True
+        return token
 
     def purge_expired_tokens(self):
-        for token in list(self.data.keys()):
-            if self.data[token]["expiration_time"] < time.time():
-                del self.data[token]
-        self.save()
+        now = time.time()
+        expired = [t for t in self.data if self.data[t]["expiration_time"] < now]
+        for t in expired:
+            del self.data[t]
+        if expired:
+            self.save()
 
     def check_token(self, token):
+        self.purge_expired_tokens()
+        return self.data[token]["username"] if token in self.data else None
+
+    def get_token_data(self, token):
+        self.purge_expired_tokens()
+        return self.data.get(token, None)
+
+    def authorize_token(self, token):
         if token in self.data:
-            if self.data[token]["expiration_time"] > time.time():
-                return self.data[token]["username"]
-            del self.data[token]
+            self.data[token]["authorized"] = True
             self.save()
-        return None
-
-db = TokenSystemDB()
-
-@app.route('/create_token', methods=['POST'])
-def create_token():
-    username = request.json['username']
-    token = request.json['token']
-    if db.create_token(username, token):
-        return jsonify({"message": "Token created"})
-    return jsonify({"message": "Token creation failed"})
-
-@app.route('/check_token', methods=['POST'])
-def check_token():
-    token = request.json['token']
-    username = db.check_token(token)
-    if username:
-        return jsonify({"message": "Token valid", "username": username})
-    return jsonify({"message": "Token invalid"})
-
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 3060))
-    app.run(host="0.0.0.0", port=port)
