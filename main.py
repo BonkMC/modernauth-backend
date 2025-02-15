@@ -92,6 +92,7 @@ def authstatus(token):
         return jsonify({"logged_in": False})
     username = tdata["username"]
     if username in userdb.data and userdb.data[username].get("sub") and tdata["authorized"]:
+        tokensdb.remove_token(token)
         return jsonify({"logged_in": True})
     return jsonify({"logged_in": False})
 

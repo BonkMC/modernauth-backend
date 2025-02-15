@@ -1,4 +1,3 @@
-# tokensystem.py
 import time, random, string, json
 
 class TokenSystemDB:
@@ -30,13 +29,15 @@ class TokenSystemDB:
         self.save()
         return token
 
+    def remove_token(self, token):
+        if token in self.data:
+            del self.data[token]
+            self.save()
+
     def purge_expired_tokens(self):
         now = time.time()
-        expired = [t for t in self.data if self.data[t]["expiration_time"] < now]
-        for t in expired:
-            del self.data[t]
-        if expired:
-            self.save()
+        self.data = {k: v for k, v in self.data.items() if v["expiration_time"] > now}
+        self.save()
 
     def check_token(self, token):
         self.purge_expired_tokens()

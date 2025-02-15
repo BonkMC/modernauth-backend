@@ -1,4 +1,3 @@
-# simulate_plugin.py
 import requests
 import time
 
@@ -12,7 +11,7 @@ def main():
     print("Polling the server to see if you're authorized...")
 
     while True:
-        time.sleep(5)
+        time.sleep(1)
         resp = requests.get(f"{BASE_URL}/api/authstatus/{TOKEN}")
         if resp.status_code == 200:
             data = resp.json()
