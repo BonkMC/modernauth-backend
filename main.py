@@ -1,4 +1,3 @@
-# main.py
 import os
 from flask import Flask, redirect, session, url_for, request, render_template, jsonify
 from authlib.integrations.flask_client import OAuth
