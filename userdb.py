@@ -15,7 +15,7 @@ class UserDB:
 
     def save(self):
         with open(self.filename, "w") as f:
-            json.dump(self.data, f)
+            json.dump(self.data, f, indent=4)
 
     def signup(self, username, authdata):
         if username not in self.data:
