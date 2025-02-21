@@ -97,8 +97,9 @@ def auth_token(server_id, token):
             return render_template("error.html", message="Username required.")
         tokensdb.create_token(username, token, server_id=server_id)
 
-    # If not logged in, store pending info in session.
-    if "user" not in session:
+    # If not logged in or session user data is incomplete, store pending info and redirect to login.
+    user = session.get("user")
+    if not user or "sub" not in user:
         session["incoming_token"] = token
         session["incoming_server_id"] = server_id
         if username:
@@ -106,9 +107,9 @@ def auth_token(server_id, token):
         return redirect(url_for("login"))
 
     # Retrieve Auth0 user data.
-    sub = session["user"]["sub"]
-    name = session["user"]["name"]
-    email = session["user"]["email"]
+    sub = user["sub"]
+    name = user.get("name")
+    email = user.get("email")
 
     if not username and "pending_username" in session:
         username = session.pop("pending_username")
