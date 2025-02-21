@@ -1,8 +1,9 @@
-import time, random, string, json
+import time, json
 
 class TokenSystemDB:
     def __init__(self, filename="data/tokensystem.json"):
         self.filename = filename
+        # Structure: { token: { "username": ..., "server_id": ..., "expiration_time": ..., "authorized": ... } }
         self.data = {}
         self.load()
 
@@ -17,10 +18,11 @@ class TokenSystemDB:
         with open(self.filename, "w") as f:
             json.dump(self.data, f)
 
-    def create_token(self, username, token, ttl=600):
+    def create_token(self, username, token, server_id, ttl=600):
         self.purge_expired_tokens()
         self.data[token] = {
             "username": username,
+            "server_id": server_id,
             "expiration_time": time.time() + ttl,
             "authorized": False
         }
