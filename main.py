@@ -1,5 +1,5 @@
 import os
-from flask import Flask, redirect, session, url_for, request, render_template, jsonify
+from flask import Flask, redirect, session, url_for, request, render_template, jsonify, send_from_directory
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 from urllib.parse import urlencode
@@ -9,6 +9,11 @@ from tokensystem import TokenSystemDB
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY")
+
+# Route to serve style.css from the project folder
+@app.route('/style.css')
+def serve_style():
+    return send_from_directory(os.path.dirname(__file__), 'style.css')
 
 oauth = OAuth(app)
 oauth.register(
@@ -39,7 +44,11 @@ def login():
 def callback():
     token_response = oauth.auth0.authorize_access_token()
     userinfo = token_response["userinfo"]
-    session["user"] = {"sub": userinfo["sub"], "name": userinfo.get("name"), "email": userinfo.get("email")}
+    session["user"] = {
+        "sub": userinfo["sub"],
+        "name": userinfo.get("name"),
+        "email": userinfo.get("email")
+    }
     if "incoming_token" in session:
         tk = session.pop("incoming_token")
         return redirect(url_for("auth_token", token=tk))
@@ -68,11 +77,13 @@ def auth_token(token):
         if username:
             session["pending_username"] = username
         return redirect(url_for("login"))
+
     sub = session["user"]["sub"]
     name = session["user"]["name"]
     email = session["user"]["email"]
     if not username and "pending_username" in session:
         username = session.pop("pending_username")
+
     if username not in userdb.data:
         # New user -> sign up
         userdb.signup(username, {"sub": sub, "name": name, "email": email})
@@ -83,13 +94,11 @@ def auth_token(token):
     if userdb.login(username, {"sub": sub, "name": name, "email": email}):
         tokensdb.authorize_token(token)
         return render_template("success.html", message=f"Logged in as {username}.")
-    return render_template("error.html", message="Wrong account.")
+    return render_template("error.html", message="You logged in with the wrong account. Please logout, then try again with the same link.")
 
 @app.route("/api/authstatus/<token>")
 def authstatus(token):
     tdata = tokensdb.get_token_data(token)
-    if not tdata:
-        return jsonify({"logged_in": False})
     username = tdata["username"]
     if username in userdb.data and userdb.data[username].get("sub") and tdata["authorized"]:
         tokensdb.remove_token(token)

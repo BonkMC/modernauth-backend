@@ -3,5 +3,5 @@
 *.iml
 .directory
 .idea
-database.json
-tokensystem.json
+data/database.json
+data/tokensystem.json

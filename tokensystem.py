@@ -1,7 +1,7 @@
 import time, random, string, json
 
 class TokenSystemDB:
-    def __init__(self, filename="tokensystem.json"):
+    def __init__(self, filename="data/tokensystem.json"):
         self.filename = filename
         self.data = {}
         self.load()
@@ -17,9 +17,7 @@ class TokenSystemDB:
         with open(self.filename, "w") as f:
             json.dump(self.data, f)
 
-    def create_token(self, username, token=None, ttl=600):
-        if not token:
-            token = "".join(random.choices(string.ascii_letters + string.digits, k=32))
+    def create_token(self, username, token, ttl=600):
         self.purge_expired_tokens()
         self.data[token] = {
             "username": username,
@@ -48,6 +46,7 @@ class TokenSystemDB:
         return self.data.get(token, None)
 
     def authorize_token(self, token):
+        self.purge_expired_tokens()
         if token in self.data:
             self.data[token]["authorized"] = True
             self.save()

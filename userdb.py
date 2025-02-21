@@ -1,7 +1,7 @@
 import json
 
 class UserDB:
-    def __init__(self, filename="database.json"):
+    def __init__(self, filename="data/database.json"):
         self.filename = filename
         self.data = {}
         self.load()

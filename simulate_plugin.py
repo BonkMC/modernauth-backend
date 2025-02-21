@@ -1,8 +1,10 @@
 import requests
 import time
+import random
+import string
 
 BASE_URL = "http://127.0.0.1:3000"  # Change if your Flask app is elsewhere
-TOKEN = "TestTokenXYZ"
+TOKEN = ''.join(random.choices(string.ascii_letters + string.digits, k=30))
 USERNAME = "MyMinecraftUser"
 
 def main():

@@ -3,63 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Error</title>
-  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
-  <style>
-    /* Reset and modern styling */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #ffe0e0, #ffcccc);
-      color: #333;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    .container {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-      padding: 30px;
-      max-width: 500px;
-      width: 90%;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 20px;
-      font-size: 2rem;
-      color: #d32f2f;
-    }
-    p {
-      margin-bottom: 20px;
-      line-height: 1.6;
-    }
-    /* Round button style for error page */
-    a.button {
-      display: inline-block;
-      padding: 10px 20px;
-      background-color: #d32f2f;
-      color: #fff;
-      border-radius: 30px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: background 0.3s ease, transform 0.3s ease;
-    }
-    a.button:hover {
-      background-color: #9a0007;
-      transform: scale(1.05);
-    }
-  </style>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="container">
-    <h1>Error</h1>
+    <h1 class="error-text">Error</h1>
     <p>{{ message|safe }}</p>
-    <p><a class="button" href="/">Go to Home</a></p>
+    <a class="button" href="/logout">Logout</a>
+    <p class="footer">Powered by ModernAuth</p>
   </div>
 </body>
 </html>
