@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Account Settings</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Account Settings</h1>
+    <p>Welcome, {{ user.name or user.email }}!</p>
+
+    <h2>Linked Accounts</h2>
+    {% if user.linked_accounts %}
+      <ul>
+        {% for provider, info in user.linked_accounts.items() %}
+          <li>{{ provider|capitalize }}: {{ info.email or info.name }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No accounts linked yet.</p>
+    {% endif %}
+
+    <h2>Link a New Account</h2>
+    <p>Click one of the buttons below to link your account with a provider:</p>
+    <a class="button" href="/link/google">Link Google Account</a>
+    <a class="button" href="/link/discord">Link Discord Account</a>
+    <a class="button" href="/link/passkeys">Link Passkeys</a>
+    <br><br>
+    <a class="button" href="/">Back to Home</a>
+  </div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import os, json
+import os, json, requests
 from flask import Flask, redirect, session, url_for, request, render_template, jsonify, send_from_directory
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
@@ -151,6 +151,124 @@ def authstatus(server_id, token):
         tokensdb.remove_token(token)
         return jsonify({"logged_in": True})
     return jsonify({"logged_in": False})
+
+
+#########################
+# Settings & Account Linking
+#########################
+
+@app.route("/settings")
+def settings():
+    if "user" not in session or "sub" not in session["user"]:
+        return redirect(url_for("login"))
+    return render_template("settings.html", user=session["user"])
+
+
+@app.route("/link/<provider>")
+def link_provider(provider):
+    """
+    Initiate linking a new provider (google, discord, passkeys) to the current account.
+    """
+    if "user" not in session or "sub" not in session["user"]:
+        return redirect(url_for("login"))
+
+    # Map provider to the corresponding Auth0 connection name.
+    connection_map = {
+        "google": "google-oauth2",
+        "discord": "discord",
+        "passkeys": "passkeys"  # Adjust if your connection name is different.
+    }
+    if provider not in connection_map:
+        return render_template("error.html", message="Unknown provider.")
+
+    # Store the intended linking provider in session.
+    session["linking"] = provider
+    redirect_uri = url_for("link_callback", provider=provider, _external=True)
+    return oauth.auth0.authorize_redirect(
+        redirect_uri=redirect_uri,
+        connection=connection_map[provider]
+    )
+
+
+def get_management_token():
+    """
+    Retrieve a Management API token using client credentials.
+    Ensure your machine-to-machine application is configured with access to the Auth0 Management API.
+    """
+    domain = os.getenv("AUTH0_DOMAIN")
+    client_id = os.getenv("AUTH0_CLIENT_ID")
+    client_secret = os.getenv("AUTH0_CLIENT_SECRET")
+    audience = f"https://{domain}/api/v2/"
+    url = f"https://{domain}/oauth/token"
+    payload = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "audience": audience,
+        "grant_type": "client_credentials"
+    }
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(url, json=payload, headers=headers)
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+
+@app.route("/link_callback/<provider>")
+def link_callback(provider):
+    """
+    Callback route after the linking provider authentication.
+    Uses the Auth0 Management API to link the secondary account with the primary account.
+    """
+    if "linking" not in session or session["linking"] != provider:
+        return render_template("error.html", message="Linking session expired or invalid.")
+    session.pop("linking", None)
+    try:
+        token_response = oauth.auth0.authorize_access_token()
+    except Exception as e:
+        return render_template("error.html", message="Failed to link account: " + str(e))
+    linking_info = token_response.get("userinfo")
+    if not linking_info:
+        return render_template("error.html", message="No user info returned from linking provider.")
+
+    # Define the connection mapping (must match your Auth0 connection names)
+    connection_map = {
+        "google": "google-oauth2",
+        "discord": "discord",
+        "passkeys": "passkeys"
+    }
+    # Obtain a Management API token.
+    try:
+        mgmt_token = get_management_token()
+    except Exception as e:
+        return render_template("error.html", message="Failed to obtain management token: " + str(e))
+
+    primary_user_id = session["user"]["sub"]
+    # Extract the secondary account's unique identifier.
+    secondary_sub = linking_info["sub"]
+    # Remove provider prefix if present (e.g., "google-oauth2|123456789" becomes "123456789")
+    secondary_user_id = secondary_sub.split("|")[1] if "|" in secondary_sub else secondary_sub
+
+    payload = {
+        "provider": connection_map[provider],
+        "user_id": secondary_user_id
+    }
+    mgmt_url = f"https://{os.getenv('AUTH0_DOMAIN')}/api/v2/users/{primary_user_id}/identities"
+    headers = {
+        "Authorization": f"Bearer {mgmt_token}",
+        "Content-Type": "application/json"
+    }
+    try:
+        r = requests.post(mgmt_url, json=payload, headers=headers)
+        r.raise_for_status()
+    except Exception as e:
+        return render_template("error.html", message="Error linking account via Management API: " + str(e))
+
+    # Optionally, update session data to reflect the newly linked account.
+    if "linked_accounts" not in session["user"]:
+        session["user"]["linked_accounts"] = {}
+    session["user"]["linked_accounts"][provider] = linking_info
+
+    message = f"Successfully linked {provider.capitalize()} account."
+    return render_template("success.html", message=message)
 
 
 if __name__ == "__main__":
