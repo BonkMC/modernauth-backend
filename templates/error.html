@@ -2,14 +2,19 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Error</title>
+  <title>Error - ModernAuth</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="container">
     <h1 class="error-text">Error</h1>
     <p>{{ message|safe }}</p>
-    <a class="button" href="/logout">Logout</a>
+    <div class="nav">
+      <a class="button" href="/">Home</a>
+      {% if user %}
+        <a class="button" href="/logout">Logout</a>
+      {% endif %}
+    </div>
     <p class="footer">Powered by ModernAuth</p>
   </div>
 </body>

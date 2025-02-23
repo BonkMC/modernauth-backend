@@ -153,6 +153,13 @@ def authstatus(server_id, token):
     return jsonify({"logged_in": False})
 
 
+@app.route("/api/isuser/<server_id>/<username>", methods=["GET"])
+def isuser(server_id, username):
+    if userdb.isuser(server_id, username):
+        return jsonify({"exists": True})
+    return jsonify({"exists": False})
+
+
 #########################
 # Settings & Account Linking
 #########################
@@ -167,16 +174,14 @@ def settings():
 @app.route("/link/<provider>")
 def link_provider(provider):
     """
-    Initiate linking a new provider (google, discord, passkeys) to the current account.
+    Initiate linking a new provider (only google is supported) to the current account.
     """
     if "user" not in session or "sub" not in session["user"]:
         return redirect(url_for("login"))
 
     # Map provider to the corresponding Auth0 connection name.
     connection_map = {
-        "google": "google-oauth2",
-        "discord": "discord",
-        "passkeys": "passkeys"  # Adjust if your connection name is different.
+        "google": "google-oauth2"
     }
     if provider not in connection_map:
         return render_template("error.html", message="Unknown provider.")
@@ -231,9 +236,7 @@ def link_callback(provider):
 
     # Define the connection mapping (must match your Auth0 connection names)
     connection_map = {
-        "google": "google-oauth2",
-        "discord": "discord",
-        "passkeys": "passkeys"
+        "google": "google-oauth2"
     }
     # Obtain a Management API token.
     try:
@@ -256,11 +259,14 @@ def link_callback(provider):
         "Authorization": f"Bearer {mgmt_token}",
         "Content-Type": "application/json"
     }
+    r = None
     try:
         r = requests.post(mgmt_url, json=payload, headers=headers)
         r.raise_for_status()
     except Exception as e:
-        return render_template("error.html", message="Error linking account via Management API: " + str(e))
+        error_details = r.text if r is not None else "No response received"
+        return render_template("error.html", message="Error linking account via Management API: " + str(
+            e) + " Details: " + error_details)
 
     # Optionally, update session data to reflect the newly linked account.
     if "linked_accounts" not in session["user"]:

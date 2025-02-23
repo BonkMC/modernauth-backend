@@ -7,6 +7,11 @@ class UserDB:
         self.data = {}
         self.load()
 
+    def isuser(self, server_id, username):
+        if server_id in self.data and username in self.data[server_id]:
+            return True
+        return False
+
     def load(self):
         try:
             with open(self.filename, "r") as f:

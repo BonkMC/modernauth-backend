@@ -26,8 +26,19 @@ body {
   width: 90%;
   text-align: center;
   color: #333;
+  margin: 20px;
+  animation: fadeIn 0.8s ease-out;
 }
 
+/* Navigation bar styling */
+.nav {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* Headings and text */
 h1 {
   font-size: 2rem;
   margin-bottom: 20px;
@@ -48,12 +59,13 @@ p {
   border-radius: 30px;
   text-decoration: none;
   font-weight: bold;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   border: none;
 }
 
 .button:hover {
   transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* Indicate error with red text */
@@ -73,4 +85,26 @@ p {
   margin-top: 20px;
   font-size: 0.8rem;
   color: #999;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .container {
+    width: 95%;
+    padding: 20px;
+  }
+  .button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+  .nav {
+    flex-direction: column;
+    gap: 5px;
+  }
 }
