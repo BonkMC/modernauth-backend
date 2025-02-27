@@ -8,7 +8,7 @@ from tokensystem import TokenSystemDB
 
 load_dotenv()
 app = Flask(__name__)
-app.secret_key = os.getenv("APP_SECRET_KEY")
+app.secret_key = os.urandom(24)
 
 
 def load_server_config():
