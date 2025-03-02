@@ -1,24 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Account Settings - ModernAuth</title>
-  <link rel="stylesheet" href="/style.css">
+    <meta charset="UTF-8">
+    <title>Account Settings - ModernAuth</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="container">
+<div class="container">
     <h1>Account Settings</h1>
     <p>Welcome, {{ user.name or user.email }}!</p>
     <div class="nav">
-      <a class="button" href="/">Home</a>
-      <a class="button" href="/logout">Logout</a>
+        <a class="button" href="/">Home</a>
+        <a class="button" href="/logout">Logout</a>
     </div>
     <h2>Link a New Account</h2>
     <p>Click one of the buttons below to link your account with a provider:</p>
     <div class="nav">
-      <a class="button" href="/link/google">Link Google Account</a>
+        <a class="button" href="/link/google">Link Google Account</a>
     </div>
     <br>
-  </div>
+    <p class="footer">Powered by ModernAuth</p>
+    <p class="footer">Developed by BonkMC</p>
+</div>
 </body>
 </html>

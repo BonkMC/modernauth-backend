@@ -8,7 +8,7 @@ from tokensystem import TokenSystemDB
 
 load_dotenv()
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.getenv("APP_SECRET_KEY")
 
 
 def load_server_config():
@@ -88,14 +88,13 @@ def auth_token(server_id, token):
     username = request.args.get("username")
     token_data = tokensdb.get_token_data(token)
 
-    # Ensure token (if exists) belongs to the correct server.
-    if token_data:
-        if token_data.get("server_id") != server_id:
-            return render_template("error.html", message="Access Denied.")
-    else:
-        if not username:
-            return render_template("error.html", message="Username required.")
-        tokensdb.create_token(username, token, server_id=server_id)
+    # If token does not exist, do not allow creation – send error page.
+    if not token_data:
+        return render_template("error.html", message="Invalid token.")
+
+    # Ensure token belongs to the correct server.
+    if token_data.get("server_id") != server_id:
+        return render_template("error.html", message="Access Denied.")
 
     # If not logged in or session user data is incomplete, store pending info and redirect to login.
     user = session.get("user")
@@ -129,6 +128,29 @@ def auth_token(server_id, token):
         return render_template("success.html", message=f"Logged in as {username} on {server_id}.")
 
     return render_template("error.html", message="Incorrect account. Please logout and try again.")
+
+
+# New secure API endpoint for token creation.
+# This endpoint requires a valid secret in the HTTP header.
+@app.route("/api/createtoken", methods=["POST"])
+def create_token():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid payload."}), 400
+    server_id = data.get("server_id")
+    token = data.get("token")
+    username = data.get("username")
+    if not server_id or not token or not username:
+        return jsonify({"error": "Missing required fields."}), 400
+
+    server_config = load_server_config()
+    expected_secret = server_config.get(server_id, {}).get("secret_key")
+    provided_secret = request.headers.get("X-Server-Secret")
+    if not provided_secret or provided_secret != expected_secret:
+        return jsonify({"error": "Unauthorized."}), 403
+
+    tokensdb.create_token(username, token, server_id=server_id)
+    return jsonify({"success": True})
 
 
 # Secure API endpoint: The secret key must be provided in the HTTP header.
@@ -268,7 +290,6 @@ def link_callback(provider):
         return render_template("error.html", message="Error linking account via Management API: " + str(
             e) + " Details: " + error_details)
 
-    # Optionally, update session data to reflect the newly linked account.
     if "linked_accounts" not in session["user"]:
         session["user"]["linked_accounts"] = {}
     session["user"]["linked_accounts"][provider] = linking_info

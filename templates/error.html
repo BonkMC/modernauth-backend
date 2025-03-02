@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Error - ModernAuth</title>
-  <link rel="stylesheet" href="/style.css">
+    <meta charset="UTF-8">
+    <title>Error - ModernAuth</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="container">
+<div class="container">
     <h1 class="error-text">Error</h1>
     <p>{{ message|safe }}</p>
     <div class="nav">
-      <a class="button" href="/">Home</a>
-      {% if user %}
-        <a class="button" href="/logout">Logout</a>
-      {% endif %}
+        <a class="button" href="/">Home</a>
+        {% if user %}
+            <a class="button" href="/logout">Logout</a>
+        {% endif %}
     </div>
     <p class="footer">Powered by ModernAuth</p>
-  </div>
+    <p class="footer">Developed by BonkMC</p>
+</div>
 </body>
 </html>

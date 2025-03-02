@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Home - ModernAuth</title>
-  <link rel="stylesheet" href="/style.css">
+    <meta charset="UTF-8">
+    <title>Home - ModernAuth</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="container">
+<div class="container">
     <h1>Welcome to ModernAuth</h1>
     {% if user %}
-      <div class="nav">
-        <a class="button" href="/settings">Settings</a>
-        <a class="button" href="/logout">Logout</a>
-      </div>
-      <p style="font-size: 0.9rem; margin-top: 10px;">Logged in as <strong>{{ user }}</strong></p>
+        <div class="nav">
+            <a class="button" href="/settings">Settings</a>
+            <a class="button" href="/logout">Logout</a>
+        </div>
+        <p style="font-size: 0.9rem; margin-top: 10px;">Logged in as <strong>{{ user }}</strong></p>
     {% else %}
-      <a class="button" href="/login">Login</a>
+        <a class="button" href="/login">Login</a>
     {% endif %}
-  </div>
+    <p class="footer">Powered by ModernAuth</p>
+    <p class="footer">Developed by BonkMC</p>
+</div>
 </body>
 </html>

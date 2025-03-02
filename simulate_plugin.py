@@ -4,7 +4,7 @@ BASE_URL = "http://10.1.1.116:3000"  # Adjust as needed
 SERVER_ID = "bonk-network"           # Public server ID
 
 # The secret key is stored securely (for example, in environment variables or a secure config)
-SECRET_KEY = "2NHJQb6MO9RB1YU3SaJ0hMhvktieEKpLJvJnxW2cY6oAu6Qlm1IJSVlShGdV5k9u5C9OCe3W0wCUUpc2RnGsISMk2xK20RAbZ30D"
+SECRET_KEY = "fNDsFnjkq4qXZMTSliHoFJFn51F1MkeR0NNrc75blw8rzFbTsWhmmjCzoOxmNjWNG0OvGBavCfGZn2s4Bq8LTlSU1iVQneGhf37I"
 
 TOKEN = ''.join(random.choices(string.ascii_letters + string.digits, k=30))
 USERNAME = "PyroEdged"
