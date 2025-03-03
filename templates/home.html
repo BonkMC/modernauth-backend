@@ -2,26 +2,29 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Home - ModernAuth</title>
-    <link rel="stylesheet" href="/style.css">
+    <title>Home</title>
+    <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-<div class="container">
-    <h1>Welcome to ModernAuth</h1>
+
+<header class="top-nav">
     {% if user %}
-        <div class="nav">
-            <a class="button" href="/settings">Settings</a>
-            {% if admin_access %}
-                <a class="button" href="/admin">Admin Panel</a>
-            {% endif %}
-            <a class="button" href="/logout">Logout</a>
-        </div>
-        <p style="font-size: 0.9rem; margin-top: 10px;">Logged in as <strong>{{ user }}</strong></p>
+        <a class="button" href="/settings">Settings</a>
+        {% if admin_access %}
+            <a class="button" href="/admin">Admin Panel</a>
+        {% endif %}
+        <a class="button" href="/logout">Logout</a>
     {% else %}
         <a class="button" href="/login">Login</a>
     {% endif %}
-    <p class="footer">Powered by ModernAuth</p>
-    <p class="footer">Developed by BonkMC</p>
+</header>
+
+<div class="container">
+    <img src="/assets/modernauth_full_title.png" alt="ModernAuth Title" style="width:600px; height:auto;">
+    {% if user %}
+        <p style="font-size: 0.9rem; margin-top: 10px; color:#ccc;">Logged in as <strong>{{ user }}</strong></p>
+    {% endif %}
+    <p class="footer">Powered by ModernAuth | Developed by BonkMC<br><u><a href="/whoweare" style="color: inherit; text-decoration: none;">Who We Are</a></u></p>
 </div>
 </body>
 </html>

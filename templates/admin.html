@@ -3,22 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <title>Admin Panel - ModernAuth</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
+
+<header class="top-nav">
+    <a class="button" href="/">Home</a>
+    <a class="button" href="/settings">Settings</a>
+    <a class="button" href="/logout">Logout</a>
+    {% if is_full_admin %}
+        <a class="button" href="/admin/import_users">Import Users</a>
+    {% endif %}
+</header>
+
 <div class="container">
     <h1>Admin Panel</h1>
-    <div class="nav">
-        <a class="button" href="/">Home</a>
-        <a class="button" href="/settings">Settings</a>
-        <a class="button" href="/logout">Logout</a>
-        {% if is_full_admin %}
-            <a class="button" href="/admin/import_users">Import Users</a>
-        {% endif %}
-    </div>
 
     <form method="get" action="/admin">
-        <label for="server_select">Select Server:</label>
+        <label for="server_select" style="color:#ccc;">Select Server:</label>
         <select id="server_select" name="server_id">
             {% for server in servers %}
                 <option value="{{ server }}" {% if server == selected_server %}selected{% endif %}>{{ server }}</option>
@@ -28,13 +30,8 @@
     </form>
 
     {% if selected_server %}
-    <h2>Managing Server: {{ selected_server }}</h2>
-    <p><strong>Server ID:</strong> {{ selected_server }}</p>
+    <h2>Server-ID: {{ selected_server }}</h2>
     <button id="resetButton" class="button">Reset Access Code</button>
-    <p id="resetMessage" class="warning" style="display:none;">
-        The new access code is: <span id="newCode"></span>.
-        <br>Please note, you won't be able to see it again!
-    </p>
 
     <h3>Users</h3>
     <table class="admin-table">
@@ -63,35 +60,66 @@
     </table>
     {% endif %}
 
-    <p class="footer">Powered by ModernAuth</p>
-    <p class="footer">Developed by BonkMC</p>
+    <p class="footer">Powered by ModernAuth | Developed by BonkMC<br><u><a href="/whoweare" style="color: inherit; text-decoration: none;">Who We Are</a></u></p>
+</div>
+
+<!-- Confirmation Modal for Reset Access Code -->
+<div id="confirmModal" class="modal-overlay">
+    <div class="modal">
+        <p>Are you sure you want to reset the access code? This cannot be undone.</p>
+        <div class="modal-actions">
+            <button id="confirmReset" class="button">Yes</button>
+            <button id="cancelReset" class="button">No</button>
+        </div>
+    </div>
+</div>
+
+<!-- Token Display Modal -->
+<div id="tokenModal" class="modal-overlay">
+    <div class="modal">
+        <p id="tokenMessage">New access code: <span id="newCode"></span></p>
+        <p>Please note, you won't be able to see this code again!</p>
+        <button id="closeTokenModal" class="button">Close</button>
+    </div>
 </div>
 
 <script>
 document.getElementById("resetButton").addEventListener("click", function() {
-    if (confirm("Are you sure you want to reset the access code? This cannot be undone.")) {
-        fetch("/admin/reset_code", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ server_id: "{{ selected_server }}" })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.new_code) {
-                document.getElementById("newCode").innerText = data.new_code;
-                document.getElementById("resetMessage").style.display = "block";
-                alert("New access code: " + data.new_code + "\nPlease note: You won't be able to see this code again.");
-            } else {
-                alert("Failed to reset access code.");
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Error resetting access code.");
-        });
-    }
+    document.getElementById("confirmModal").style.display = "flex";
+});
+
+document.getElementById("cancelReset").addEventListener("click", function() {
+    document.getElementById("confirmModal").style.display = "none";
+});
+
+document.getElementById("confirmReset").addEventListener("click", function() {
+    document.getElementById("confirmModal").style.display = "none";
+    fetch("/admin/reset_code", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ server_id: "{{ selected_server }}" })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.new_code) {
+            document.getElementById("newCode").innerText = data.new_code;
+            document.getElementById("tokenModal").style.display = "flex";
+        } else {
+            document.getElementById("tokenMessage").innerText = "Failed to reset access code.";
+            document.getElementById("tokenModal").style.display = "flex";
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        document.getElementById("tokenMessage").innerText = "Error resetting access code.";
+        document.getElementById("tokenModal").style.display = "flex";
+    });
+});
+
+document.getElementById("closeTokenModal").addEventListener("click", function() {
+    document.getElementById("tokenModal").style.display = "none";
 });
 </script>
 </body>

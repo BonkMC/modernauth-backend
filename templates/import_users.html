@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <title>Import Users - ModernAuth Admin Panel</title>
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
+
+<header class="top-nav">
+    <a class="button" href="/admin">Admin Panel</a>
+    <a class="button" href="/settings">Settings</a>
+    <a class="button" href="/logout">Logout</a>
+</header>
+
 <div class="container">
     <h1>Import Users</h1>
-    <div class="nav">
-        <a class="button" href="/admin">Admin Panel</a>
-        <a class="button" href="/settings">Settings</a>
-        <a class="button" href="/logout">Logout</a>
-    </div>
 
     {% if not selected_server %}
         <h3>Select a Server</h3>
         <form method="get" action="/admin/import_users">
-            <label for="server_select">Server:</label>
+            <label for="server_select" style="color:#ccc;">Server:</label>
             <select id="server_select" name="server_id">
                 {% for server in servers %}
                     <option value="{{ server }}">{{ server }}</option>
@@ -58,8 +60,7 @@
         {% endif %}
     {% endif %}
 
-    <p class="footer">Powered by ModernAuth</p>
-    <p class="footer">Developed by BonkMC</p>
+    <p class="footer">Powered by ModernAuth | Developed by BonkMC<br><u><a href="/whoweare" style="color: inherit; text-decoration: none;">Who We Are</a></u></p>
 </div>
 </body>
 </html>

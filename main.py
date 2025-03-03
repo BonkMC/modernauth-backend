@@ -22,9 +22,10 @@ def load_server_config():
 
 
 # Serve static style.css
-@app.route('/style.css')
-def serve_style():
-    return send_from_directory(os.path.dirname(__file__), 'style.css')
+
+@app.route('/assets/<path:path>')
+def serve_assets(path):
+    return send_from_directory(os.path.dirname(__file__), 'assets/' + path)
 
 
 oauth = OAuth(app)
@@ -51,6 +52,10 @@ def home():
         return render_template("home.html", user=session["user"].get("name"), admin_access=admin_access)
     return render_template("home.html", user=None, admin_access=False)
 
+
+@app.route("/whoweare")
+def whoweare():
+    return render_template("whoweare.html")
 
 @app.route("/login")
 def login():
