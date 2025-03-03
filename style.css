@@ -50,7 +50,7 @@ p {
   line-height: 1.6;
 }
 
-/* Button: use the same gradient as the background */
+/* Button styling */
 .button {
   display: inline-block;
   padding: 12px 24px;
@@ -61,6 +61,7 @@ p {
   font-weight: bold;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border: none;
+  cursor: pointer;
 }
 
 .button:hover {
@@ -68,13 +69,12 @@ p {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-/* Indicate error with red text */
+/* Error and success text */
 .error-text {
   color: #ef4444;
   font-weight: bold;
 }
 
-/* Indicate success with green text */
 .success-text {
   color: #10b981;
   font-weight: bold;
@@ -107,4 +107,34 @@ p {
     flex-direction: column;
     gap: 5px;
   }
+}
+
+/* Admin Panel Table Styling */
+table.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+table.admin-table th,
+table.admin-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+table.admin-table th {
+  background-color: #f2f2f2;
+  color: #333;
+  font-weight: bold;
+}
+
+table.admin-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Warning message styling */
+.warning {
+  color: red;
+  font-weight: bold;
 }

@@ -5,22 +5,12 @@ from dotenv import load_dotenv
 from urllib.parse import urlencode
 from userdb import UserDB
 from tokensystem import TokenSystemDB
-
-# Import rate limiting tools
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from admin_db import AdminDB  # New admin database
 
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY")
 
-# Initialize the limiter with a global default rate limit.
-# For example, this sets a limit of 100 requests per day and 20 per hour per IP.
-limiter = Limiter(
-    app,
-    key_func=get_remote_address,
-    default_limits=["100 per day", "20 per hour"]
-)
 
 def load_server_config():
     """Load the server configuration from disk so that new keys appear without downtime."""
@@ -29,6 +19,7 @@ def load_server_config():
             return json.load(f)
     except FileNotFoundError:
         return {}
+
 
 # Serve static style.css
 @app.route('/style.css')
@@ -48,13 +39,17 @@ oauth.register(
 # Initialize our per-server user and token databases
 userdb = UserDB()
 tokensdb = TokenSystemDB()
+admin_db = AdminDB()  # Initialize admin database
 
 
 @app.route("/")
 def home():
     if "user" in session:
-        return render_template("home.html", user=session["user"].get("name"))
-    return render_template("home.html", user=None)
+        user_sub = session["user"]["sub"]
+        accessible = admin_db.get_accessible_servers(user_sub)
+        admin_access = (accessible != [])
+        return render_template("home.html", user=session["user"].get("name"), admin_access=admin_access)
+    return render_template("home.html", user=None, admin_access=False)
 
 
 @app.route("/login")
@@ -141,11 +136,7 @@ def auth_token(server_id, token):
 
 
 # New secure API endpoint for token creation.
-# This endpoint requires a valid secret in the HTTP header.
-# Modified so that the response is generic to avoid confirming token creation.
-# Added a stricter rate limit for additional protection.
 @app.route("/api/createtoken", methods=["POST"])
-@limiter.limit("5 per minute")
 def create_token():
     data = request.get_json()
     generic_response = {"message": "If your token is valid, you will see the appropriate behavior."}
@@ -168,9 +159,7 @@ def create_token():
 
 
 # Secure API endpoint: The secret key must be provided in the HTTP header.
-# Added a rate limit to prevent brute force attempts.
 @app.route("/api/authstatus/<server_id>/<token>", methods=["GET"])
-@limiter.limit("10 per minute")
 def authstatus(server_id, token):
     server_config = load_server_config()
     expected_secret = server_config.get(server_id, {}).get("secret_key")
@@ -205,7 +194,10 @@ def isuser(server_id, username):
 def settings():
     if "user" not in session or "sub" not in session["user"]:
         return redirect(url_for("login"))
-    return render_template("settings.html", user=session["user"])
+    user_sub = session["user"]["sub"]
+    accessible = admin_db.get_accessible_servers(user_sub)
+    admin_access = (accessible != [])
+    return render_template("settings.html", user=session["user"], admin_access=admin_access)
 
 
 @app.route("/link/<provider>")
@@ -297,6 +289,112 @@ def link_callback(provider):
 
     message = f"Successfully linked {provider.capitalize()} account."
     return render_template("success.html", message=message)
+
+
+#########################
+# Admin Panel Endpoints
+#########################
+
+@app.route("/admin", methods=["GET"])
+def admin_panel():
+    if "user" not in session or "sub" not in session["user"]:
+        return redirect(url_for("login"))
+    user_sub = session["user"]["sub"]
+    accessible = admin_db.get_accessible_servers(user_sub)
+    if accessible == []:
+        return render_template("error.html", message="You do not have admin or manager privileges.")
+    server_config = load_server_config()
+    if accessible == "all":
+        servers = list(server_config.keys())
+    else:
+        servers = accessible
+    selected_server = request.args.get("server_id")
+    users = {}
+    if selected_server:
+        if selected_server in userdb.data:
+            users = userdb.data[selected_server]
+    # Determine if current user is a full admin
+    is_full_admin = admin_db.is_admin(user_sub)
+    return render_template("admin.html", servers=servers, selected_server=selected_server, users=users,
+                           is_full_admin=is_full_admin)
+
+
+@app.route("/admin/reset_code", methods=["POST"])
+def reset_code():
+    if "user" not in session or "sub" not in session["user"]:
+        return jsonify({"error": "Unauthorized"}), 401
+    user_sub = session["user"]["sub"]
+    accessible = admin_db.get_accessible_servers(user_sub)
+    if accessible == []:
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json()
+    server_id = data.get("server_id")
+    if not server_id:
+        return jsonify({"error": "Missing server_id"}), 400
+    if accessible != "all" and server_id not in accessible:
+        return jsonify({"error": "Access denied"}), 403
+    from controls import generate_secret_key
+    new_code = generate_secret_key(100)
+    config = load_server_config()
+    if server_id not in config:
+        return jsonify({"error": "Server not found"}), 404
+    config[server_id]["secret_key"] = new_code
+    with open("server_config.json", "w") as f:
+        json.dump(config, f, indent=4)
+    return jsonify({"new_code": new_code})
+
+
+@app.route("/admin/unregister_user", methods=["POST"])
+def unregister_user():
+    if "user" not in session or "sub" not in session["user"]:
+        return redirect(url_for("login"))
+    user_sub = session["user"]["sub"]
+    accessible = admin_db.get_accessible_servers(user_sub)
+    if accessible == []:
+        return render_template("error.html", message="Unauthorized")
+    server_id = request.form.get("server_id")
+    username = request.form.get("username")
+    if not server_id or not username:
+        return render_template("error.html", message="Missing parameters.")
+    if accessible != "all" and server_id not in accessible:
+        return render_template("error.html", message="Access denied.")
+    if server_id in userdb.data and username in userdb.data[server_id]:
+        del userdb.data[server_id][username]
+        userdb.save()
+    return redirect(url_for("admin_panel", server_id=server_id))
+
+
+@app.route("/admin/import_users", methods=["GET", "POST"])
+def import_users():
+    # Only full admins can import users
+    if "user" not in session or "sub" not in session["user"]:
+        return redirect(url_for("login"))
+    user_sub = session["user"]["sub"]
+    if not admin_db.is_admin(user_sub):
+        return render_template("error.html", message="Only full admins can import users.")
+
+    if request.method == "GET":
+        server_id = request.args.get("server_id")
+        if not server_id:
+            # Provide a list of available servers from the main user database.
+            servers = list(userdb.data.keys())
+            return render_template("import_users.html", servers=servers, selected_server=None, users={})
+        else:
+            # List users from the selected server who are not already imported for that server.
+            users = {}
+            if server_id in userdb.data:
+                for username, details in userdb.data[server_id].items():
+                    existing = admin_db.data.get(details.get("sub"))
+                    if existing and server_id in existing.get("servers", []):
+                        continue
+                    users[username] = details
+            return render_template("import_users.html", servers=[], selected_server=server_id, users=users)
+    else:  # POST
+        server_id = request.form.get("server_id")
+        selected_users = request.form.getlist("user_sub")
+        for user_sub_to_import in selected_users:
+            admin_db.import_user(user_sub_to_import, server_id)
+        return redirect(url_for("admin_panel", server_id=server_id))
 
 
 if __name__ == "__main__":

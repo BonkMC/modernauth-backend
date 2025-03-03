@@ -11,6 +11,9 @@
     {% if user %}
         <div class="nav">
             <a class="button" href="/settings">Settings</a>
+            {% if admin_access %}
+                <a class="button" href="/admin">Admin Panel</a>
+            {% endif %}
             <a class="button" href="/logout">Logout</a>
         </div>
         <p style="font-size: 0.9rem; margin-top: 10px;">Logged in as <strong>{{ user }}</strong></p>
