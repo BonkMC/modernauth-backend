@@ -6,10 +6,21 @@ from urllib.parse import urlencode
 from userdb import UserDB
 from tokensystem import TokenSystemDB
 
+# Import rate limiting tools
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY")
 
+# Initialize the limiter with a global default rate limit.
+# For example, this sets a limit of 100 requests per day and 20 per hour per IP.
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["100 per day", "20 per hour"]
+)
 
 def load_server_config():
     """Load the server configuration from disk so that new keys appear without downtime."""
@@ -18,7 +29,6 @@ def load_server_config():
             return json.load(f)
     except FileNotFoundError:
         return {}
-
 
 # Serve static style.css
 @app.route('/style.css')
@@ -132,31 +142,36 @@ def auth_token(server_id, token):
 
 # New secure API endpoint for token creation.
 # This endpoint requires a valid secret in the HTTP header.
+# Modified so that the response is generic to avoid confirming token creation.
+# Added a stricter rate limit for additional protection.
 @app.route("/api/createtoken", methods=["POST"])
+@limiter.limit("5 per minute")
 def create_token():
     data = request.get_json()
+    generic_response = {"message": "If your token is valid, you will see the appropriate behavior."}
     if not data:
-        return jsonify({"error": "Invalid payload."}), 400
+        return jsonify(generic_response), 200
     server_id = data.get("server_id")
     token = data.get("token")
     username = data.get("username")
     if not server_id or not token or not username:
-        return jsonify({"error": "Missing required fields."}), 400
+        return jsonify(generic_response), 200
 
     server_config = load_server_config()
     expected_secret = server_config.get(server_id, {}).get("secret_key")
     provided_secret = request.headers.get("X-Server-Secret")
     if not provided_secret or provided_secret != expected_secret:
-        return jsonify({"error": "Unauthorized."}), 403
+        return jsonify(generic_response), 200
 
     tokensdb.create_token(username, token, server_id=server_id)
-    return jsonify({"success": True})
+    return jsonify(generic_response), 200
 
 
 # Secure API endpoint: The secret key must be provided in the HTTP header.
+# Added a rate limit to prevent brute force attempts.
 @app.route("/api/authstatus/<server_id>/<token>", methods=["GET"])
+@limiter.limit("10 per minute")
 def authstatus(server_id, token):
-    # Load the up-to-date server configuration.
     server_config = load_server_config()
     expected_secret = server_config.get(server_id, {}).get("secret_key")
     provided_secret = request.headers.get("X-Server-Secret")
@@ -201,14 +216,12 @@ def link_provider(provider):
     if "user" not in session or "sub" not in session["user"]:
         return redirect(url_for("login"))
 
-    # Map provider to the corresponding Auth0 connection name.
     connection_map = {
         "google": "google-oauth2"
     }
     if provider not in connection_map:
         return render_template("error.html", message="Unknown provider.")
 
-    # Store the intended linking provider in session.
     session["linking"] = provider
     redirect_uri = url_for("link_callback", provider=provider, _external=True)
     return oauth.auth0.authorize_redirect(
@@ -218,10 +231,6 @@ def link_provider(provider):
 
 
 def get_management_token():
-    """
-    Retrieve a Management API token using client credentials.
-    Ensure your machine-to-machine application is configured with access to the Auth0 Management API.
-    """
     domain = os.getenv("AUTH0_DOMAIN")
     client_id = os.getenv("AUTH0_CLIENT_ID")
     client_secret = os.getenv("AUTH0_CLIENT_SECRET")
@@ -241,10 +250,6 @@ def get_management_token():
 
 @app.route("/link_callback/<provider>")
 def link_callback(provider):
-    """
-    Callback route after the linking provider authentication.
-    Uses the Auth0 Management API to link the secondary account with the primary account.
-    """
     if "linking" not in session or session["linking"] != provider:
         return render_template("error.html", message="Linking session expired or invalid.")
     session.pop("linking", None)
@@ -256,20 +261,16 @@ def link_callback(provider):
     if not linking_info:
         return render_template("error.html", message="No user info returned from linking provider.")
 
-    # Define the connection mapping (must match your Auth0 connection names)
     connection_map = {
         "google": "google-oauth2"
     }
-    # Obtain a Management API token.
     try:
         mgmt_token = get_management_token()
     except Exception as e:
         return render_template("error.html", message="Failed to obtain management token: " + str(e))
 
     primary_user_id = session["user"]["sub"]
-    # Extract the secondary account's unique identifier.
     secondary_sub = linking_info["sub"]
-    # Remove provider prefix if present (e.g., "google-oauth2|123456789" becomes "123456789")
     secondary_user_id = secondary_sub.split("|")[1] if "|" in secondary_sub else secondary_sub
 
     payload = {
