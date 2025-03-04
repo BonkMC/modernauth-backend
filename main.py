@@ -1,4 +1,4 @@
-import os, json, requests
+import os, json, requests, secrets, string
 from flask import Flask, redirect, session, url_for, request, render_template, jsonify, send_from_directory
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
@@ -11,7 +11,6 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY")
 
-
 def load_server_config():
     """Load the server configuration from disk so that new keys appear without downtime."""
     try:
@@ -20,13 +19,10 @@ def load_server_config():
     except FileNotFoundError:
         return {}
 
-
-# Serve static style.css
-
+# Serve static assets
 @app.route('/assets/<path:path>')
 def serve_assets(path):
-    return send_from_directory(os.path.dirname(__file__), 'assets/' + path)
-
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'assets'), path)
 
 oauth = OAuth(app)
 oauth.register(
@@ -42,7 +38,6 @@ userdb = UserDB()
 tokensdb = TokenSystemDB()
 admin_db = AdminDB()  # Initialize admin database
 
-
 @app.route("/")
 def home():
     if "user" in session:
@@ -51,7 +46,6 @@ def home():
         admin_access = (accessible != [])
         return render_template("home.html", user=session["user"].get("name"), admin_access=admin_access)
     return render_template("home.html", user=None, admin_access=False)
-
 
 @app.route("/whoweare")
 def whoweare():
@@ -63,7 +57,6 @@ def login():
         redirect_uri=url_for("callback", _external=True),
         prompt="login"
     )
-
 
 @app.route("/callback")
 def callback():
@@ -79,8 +72,10 @@ def callback():
         tk = session.pop("incoming_token")
         server_id = session.pop("incoming_server_id")
         return redirect(url_for("auth_token", server_id=server_id, token=tk))
+    if "incoming_invite_token" in session:
+        token = session.pop("incoming_invite_token")
+        return redirect(url_for("manager_invite", token=token))
     return redirect(url_for("home"))
-
 
 @app.route("/logout")
 def logout():
@@ -90,7 +85,6 @@ def logout():
         "client_id": os.getenv("AUTH0_CLIENT_ID")
     }
     return redirect(f"https://{os.getenv('AUTH0_DOMAIN')}/v2/logout?{urlencode(params)}")
-
 
 # Public authentication endpoint using the public server ID.
 @app.route("/auth/<server_id>/<token>")
@@ -127,18 +121,22 @@ def auth_token(server_id, token):
     if server_id not in userdb.data:
         userdb.data[server_id] = {}
 
-    # Sign up new users or log in existing users (scoped by server_id).
+    # Check for duplicate email in new signup.
     if username not in userdb.data[server_id]:
-        userdb.signup(server_id, username, {"sub": sub, "name": name, "email": email})
-        tokensdb.authorize_token(token)
-        return render_template("success.html", message=f"Created account for {username} on {server_id}.")
-
+        for existing_username, details in userdb.data[server_id].items():
+            if details.get("email") == email:
+                return render_template("error.html", message="A user with that email already exists on this server.")
+        # Sign up new user.
+        if userdb.signup(server_id, username, {"sub": sub, "name": name, "email": email}):
+            tokensdb.authorize_token(token)
+            return render_template("success.html", message=f"Created account for {username} on {server_id}.")
+        else:
+            return render_template("error.html", message="Signup failed. Possibly duplicate email.")
+    # If user exists, attempt login.
     if userdb.login(server_id, username, {"sub": sub, "name": name, "email": email}):
         tokensdb.authorize_token(token)
         return render_template("success.html", message=f"Logged in as {username} on {server_id}.")
-
     return render_template("error.html", message="Incorrect account. Please logout and try again.")
-
 
 # New secure API endpoint for token creation.
 @app.route("/api/createtoken", methods=["POST"])
@@ -162,7 +160,6 @@ def create_token():
     tokensdb.create_token(username, token, server_id=server_id)
     return jsonify(generic_response), 200
 
-
 # Secure API endpoint: The secret key must be provided in the HTTP header.
 @app.route("/api/authstatus/<server_id>/<token>", methods=["GET"])
 def authstatus(server_id, token):
@@ -183,13 +180,11 @@ def authstatus(server_id, token):
         return jsonify({"logged_in": True})
     return jsonify({"logged_in": False})
 
-
 @app.route("/api/isuser/<server_id>/<username>", methods=["GET"])
 def isuser(server_id, username):
     if userdb.isuser(server_id, username):
         return jsonify({"exists": True})
     return jsonify({"exists": False})
-
 
 #########################
 # Settings & Account Linking
@@ -203,7 +198,6 @@ def settings():
     accessible = admin_db.get_accessible_servers(user_sub)
     admin_access = (accessible != [])
     return render_template("settings.html", user=session["user"], admin_access=admin_access)
-
 
 @app.route("/link/<provider>")
 def link_provider(provider):
@@ -226,7 +220,6 @@ def link_provider(provider):
         connection=connection_map[provider]
     )
 
-
 def get_management_token():
     domain = os.getenv("AUTH0_DOMAIN")
     client_id = os.getenv("AUTH0_CLIENT_ID")
@@ -243,7 +236,6 @@ def get_management_token():
     response = requests.post(url, json=payload, headers=headers)
     response.raise_for_status()
     return response.json()["access_token"]
-
 
 @app.route("/link_callback/<provider>")
 def link_callback(provider):
@@ -295,7 +287,6 @@ def link_callback(provider):
     message = f"Successfully linked {provider.capitalize()} account."
     return render_template("success.html", message=message)
 
-
 #########################
 # Admin Panel Endpoints
 #########################
@@ -323,7 +314,6 @@ def admin_panel():
     return render_template("admin.html", servers=servers, selected_server=selected_server, users=users,
                            is_full_admin=is_full_admin)
 
-
 @app.route("/admin/reset_code", methods=["POST"])
 def reset_code():
     if "user" not in session or "sub" not in session["user"]:
@@ -338,8 +328,8 @@ def reset_code():
         return jsonify({"error": "Missing server_id"}), 400
     if accessible != "all" and server_id not in accessible:
         return jsonify({"error": "Access denied"}), 403
-    from controls import generate_secret_key
-    new_code = generate_secret_key(100)
+    # Generate new secret key inline
+    new_code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(100))
     config = load_server_config()
     if server_id not in config:
         return jsonify({"error": "Server not found"}), 404
@@ -347,7 +337,6 @@ def reset_code():
     with open("server_config.json", "w") as f:
         json.dump(config, f, indent=4)
     return jsonify({"new_code": new_code})
-
 
 @app.route("/admin/unregister_user", methods=["POST"])
 def unregister_user():
@@ -368,39 +357,66 @@ def unregister_user():
         userdb.save()
     return redirect(url_for("admin_panel", server_id=server_id))
 
-
-@app.route("/admin/import_users", methods=["GET", "POST"])
-def import_users():
-    # Only full admins can import users
+# New management page for server administration (replacing import users)
+@app.route("/admin/manage", methods=["GET", "POST"])
+def manage_servers():
     if "user" not in session or "sub" not in session["user"]:
         return redirect(url_for("login"))
     user_sub = session["user"]["sub"]
     if not admin_db.is_admin(user_sub):
-        return render_template("error.html", message="Only full admins can import users.")
+        return render_template("error.html", message="Only full admins can access server management.")
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "add_server":
+            server_id = request.form.get("server_id")
+            config = load_server_config()
+            if server_id in config:
+                message = f"Server {server_id} already exists."
+            else:
+                secret_key = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(100))
+                config[server_id] = {"secret_key": secret_key}
+                with open("server_config.json", "w") as f:
+                    json.dump(config, f, indent=4)
+                message = f"Server {server_id} added successfully with secret key: {secret_key}"
+            return render_template("manage_servers.html", message=message, servers=list(config.keys()))
+        elif action == "generate_invite":
+            server_id = request.form.get("server_id")
+            # Generate an invitation token specifically for manager invite.
+            token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(50))
+            tokensdb.create_token("manager_invite", token, server_id, ttl=3600)
+            invite_link = url_for("manager_invite", token=token, _external=True)
+            config = load_server_config()
+            message = f"Invitation link generated for server {server_id}."
+            return render_template("manage_servers.html", message=message, servers=list(config.keys()), invite_link=invite_link)
+        elif action == "add_manager_direct":
+            server_id = request.form.get("server_id")
+            auth0_id = request.form.get("auth0_id")
+            email = request.form.get("email")
+            success = admin_db.add_access(auth0_id, email, server_id, is_admin=False)
+            if success:
+                message = f"Manager access added for {email} on server {server_id}."
+            else:
+                message = f"Failed to add access. Duplicate email exists for server {server_id}."
+            config = load_server_config()
+            return render_template("manage_servers.html", message=message, servers=list(config.keys()))
+    else:
+        config = load_server_config()
+        return render_template("manage_servers.html", servers=list(config.keys()))
 
-    if request.method == "GET":
-        server_id = request.args.get("server_id")
-        if not server_id:
-            # Provide a list of available servers from the main user database.
-            servers = list(userdb.data.keys())
-            return render_template("import_users.html", servers=servers, selected_server=None, users={})
-        else:
-            # List users from the selected server who are not already imported for that server.
-            users = {}
-            if server_id in userdb.data:
-                for username, details in userdb.data[server_id].items():
-                    existing = admin_db.data.get(details.get("sub"))
-                    if existing and server_id in existing.get("servers", []):
-                        continue
-                    users[username] = details
-            return render_template("import_users.html", servers=[], selected_server=server_id, users=users)
-    else:  # POST
-        server_id = request.form.get("server_id")
-        selected_users = request.form.getlist("user_sub")
-        for user_sub_to_import in selected_users:
-            admin_db.import_user(user_sub_to_import, server_id)
-        return redirect(url_for("admin_panel", server_id=server_id))
-
+# New route for manager invitation
+@app.route("/manager_invite/<token>")
+def manager_invite(token):
+    token_data = tokensdb.get_token_data(token)
+    if not token_data:
+         return render_template("error.html", message="Invalid or expired invitation token.")
+    user = session.get("user")
+    if not user or "sub" not in user:
+         session["incoming_invite_token"] = token
+         return redirect(url_for("login"))
+    sub = user["sub"]
+    email = user.get("email")
+    tokensdb.authorize_token(token)
+    return render_template("success.html", message=f"Invitation accepted. Your Auth0 ID: {sub}, Email: {email}. Provide this info to your admin for access.")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 3000)))

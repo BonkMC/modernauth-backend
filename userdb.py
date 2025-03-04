@@ -26,6 +26,10 @@ class UserDB:
     def signup(self, server_id, username, authdata):
         if server_id not in self.data:
             self.data[server_id] = {}
+        # Prevent duplicate registration: check if email already exists in this server.
+        for existing_username, details in self.data[server_id].items():
+            if details.get("email") == authdata.get("email"):
+                return False
         if username not in self.data[server_id]:
             self.data[server_id][username] = authdata
             self.save()

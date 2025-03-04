@@ -3,7 +3,7 @@ import json
 class AdminDB:
     def __init__(self, filename="data/admindb.json"):
         self.filename = filename
-        # Data structure: { user_sub: { "is_admin": bool, "servers": [server_id, ...] } }
+        # Data structure: { user_sub: { "is_admin": bool, "email": str, "servers": [server_id, ...] } }
         self.data = {}
         self.load()
 
@@ -40,21 +40,26 @@ class AdminDB:
                 return admin.get("servers", [])
         return []
 
-    def set_admin(self, user_sub, is_admin, servers=None):
+    def set_admin(self, user_sub, is_admin, servers=None, email=""):
         if servers is None:
             servers = []
-        self.data[user_sub] = {"is_admin": is_admin, "servers": servers}
+        self.data[user_sub] = {"is_admin": is_admin, "servers": servers, "email": email}
         self.save()
 
-    def import_user(self, user_sub, server_id):
-        """Import a user (by their Auth0 sub) as a manager for the given server."""
+    def add_access(self, user_sub, email, server_id, is_admin=False):
+        # Prevent duplicate email for the same server.
+        for uid, record in self.data.items():
+            if server_id in record.get("servers", []):
+                if record.get("email") == email:
+                    return False
         if user_sub in self.data:
-            if self.data[user_sub].get("is_admin"):
-                # Already a full admin; no need to import.
-                return
-            if server_id not in self.data[user_sub].get("servers", []):
-                self.data[user_sub]["servers"].append(server_id)
+            record = self.data[user_sub]
+            record["email"] = email
+            if server_id not in record.get("servers", []):
+                record["servers"].append(server_id)
+            if is_admin:
+                record["is_admin"] = True
         else:
-            # Create a new manager entry with the given server.
-            self.data[user_sub] = {"is_admin": False, "servers": [server_id]}
+            self.data[user_sub] = {"is_admin": is_admin, "servers": [server_id], "email": email}
         self.save()
+        return True

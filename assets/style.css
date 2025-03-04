@@ -49,6 +49,17 @@ body {
   transform: translateY(-2px);
 }
 
+/* Logo styling for top right of header */
+.top-nav .logo {
+  position: absolute;
+  left: 30px;
+  top: 15px;
+}
+.top-nav .logo img {
+  width: 50px;  /* Shrinking the 720x720 logo */
+  height: auto;
+}
+
 /* Container styling */
 .container {
   background: #000;       /* Dark container background */
