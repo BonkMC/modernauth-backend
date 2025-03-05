@@ -3,5 +3,3 @@
 *.iml
 .directory
 .idea
-data
-server_config.json

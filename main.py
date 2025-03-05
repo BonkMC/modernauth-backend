@@ -6,18 +6,14 @@ from urllib.parse import urlencode
 from userdb import UserDB
 from tokensystem import TokenSystemDB
 from admin_db import AdminDB  # New admin database
+from server_config import ServerConfig  # New server configuration class
 
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY")
 
-def load_server_config():
-    """Load the server configuration from disk so that new keys appear without downtime."""
-    try:
-        with open("server_config.json", "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
+# Instantiate the ServerConfig class for dynamic configuration loading
+server_config = ServerConfig()
 
 # Serve static assets
 @app.route('/assets/<path:path>')
@@ -151,8 +147,7 @@ def create_token():
     if not server_id or not token or not username:
         return jsonify(generic_response), 200
 
-    server_config = load_server_config()
-    expected_secret = server_config.get(server_id, {}).get("secret_key")
+    expected_secret = server_config.get(server_id).get("secret_key")
     provided_secret = request.headers.get("X-Server-Secret")
     if not provided_secret or provided_secret != expected_secret:
         return jsonify(generic_response), 200
@@ -163,8 +158,7 @@ def create_token():
 # Secure API endpoint: The secret key must be provided in the HTTP header.
 @app.route("/api/authstatus/<server_id>/<token>", methods=["GET"])
 def authstatus(server_id, token):
-    server_config = load_server_config()
-    expected_secret = server_config.get(server_id, {}).get("secret_key")
+    expected_secret = server_config.get(server_id).get("secret_key")
     provided_secret = request.headers.get("X-Server-Secret")
     if not provided_secret or provided_secret != expected_secret:
         return jsonify({"logged_in": False})
@@ -299,9 +293,9 @@ def admin_panel():
     accessible = admin_db.get_accessible_servers(user_sub)
     if accessible == []:
         return render_template("error.html", message="You do not have admin or manager privileges.")
-    server_config = load_server_config()
+    config = server_config.get()
     if accessible == "all":
-        servers = list(server_config.keys())
+        servers = list(config.keys())
     else:
         servers = accessible
     selected_server = request.args.get("server_id")
@@ -328,14 +322,10 @@ def reset_code():
         return jsonify({"error": "Missing server_id"}), 400
     if accessible != "all" and server_id not in accessible:
         return jsonify({"error": "Access denied"}), 403
-    # Generate new secret key inline
     new_code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(100))
-    config = load_server_config()
-    if server_id not in config:
+    if not server_config.has_server(server_id):
         return jsonify({"error": "Server not found"}), 404
-    config[server_id]["secret_key"] = new_code
-    with open("server_config.json", "w") as f:
-        json.dump(config, f, indent=4)
+    server_config.update_secret(server_id, new_code)
     return jsonify({"new_code": new_code})
 
 @app.route("/admin/unregister_user", methods=["POST"])
@@ -369,25 +359,22 @@ def manage_servers():
         action = request.form.get("action")
         if action == "add_server":
             server_id = request.form.get("server_id")
-            config = load_server_config()
-            if server_id in config:
+            if server_config.has_server(server_id):
                 message = f"Server {server_id} already exists."
             else:
                 secret_key = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(100))
-                config[server_id] = {"secret_key": secret_key}
-                with open("server_config.json", "w") as f:
-                    json.dump(config, f, indent=4)
+                server_config.add_server(server_id, secret_key)
                 message = f"Server {server_id} added successfully with secret key: {secret_key}"
-            return render_template("manage_servers.html", message=message, servers=list(config.keys()))
+            servers = list(server_config.get().keys())
+            return render_template("manage_servers.html", message=message, servers=servers)
         elif action == "generate_invite":
             server_id = request.form.get("server_id")
-            # Generate an invitation token specifically for manager invite.
             token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(50))
             tokensdb.create_token("manager_invite", token, server_id, ttl=3600)
             invite_link = url_for("manager_invite", token=token, _external=True)
-            config = load_server_config()
+            servers = list(server_config.get().keys())
             message = f"Invitation link generated for server {server_id}."
-            return render_template("manage_servers.html", message=message, servers=list(config.keys()), invite_link=invite_link)
+            return render_template("manage_servers.html", message=message, servers=servers, invite_link=invite_link)
         elif action == "add_manager_direct":
             server_id = request.form.get("server_id")
             auth0_id = request.form.get("auth0_id")
@@ -397,11 +384,11 @@ def manage_servers():
                 message = f"Manager access added for {email} on server {server_id}."
             else:
                 message = f"Failed to add access. Duplicate email exists for server {server_id}."
-            config = load_server_config()
-            return render_template("manage_servers.html", message=message, servers=list(config.keys()))
+            servers = list(server_config.get().keys())
+            return render_template("manage_servers.html", message=message, servers=servers)
     else:
-        config = load_server_config()
-        return render_template("manage_servers.html", servers=list(config.keys()))
+        servers = list(server_config.get().keys())
+        return render_template("manage_servers.html", servers=servers)
 
 # New route for manager invitation
 @app.route("/manager_invite/<token>")

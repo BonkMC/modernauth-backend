@@ -4,7 +4,7 @@ import secrets
 import string
 import sys
 
-CONFIG_FILE = "server_config.json"
+CONFIG_FILE = "data/server_config.json"
 
 def load_config():
     """Load the server configuration from disk."""
