@@ -14,7 +14,7 @@ app.secret_key = os.getenv("APP_SECRET_KEY")
 def load_server_config():
     """Load the server configuration from disk so that new keys appear without downtime."""
     try:
-        with open("server_config.json", "r") as f:
+        with open("data/server_config.json", "r") as f:
             return json.load(f)
     except FileNotFoundError:
         return {}
@@ -334,7 +334,7 @@ def reset_code():
     if server_id not in config:
         return jsonify({"error": "Server not found"}), 404
     config[server_id]["secret_key"] = new_code
-    with open("server_config.json", "w") as f:
+    with open("data/server_config.json", "w") as f:
         json.dump(config, f, indent=4)
     return jsonify({"new_code": new_code})
 
@@ -375,7 +375,7 @@ def manage_servers():
             else:
                 secret_key = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(100))
                 config[server_id] = {"secret_key": secret_key}
-                with open("server_config.json", "w") as f:
+                with open("data/server_config.json", "w") as f:
                     json.dump(config, f, indent=4)
                 message = f"Server {server_id} added successfully with secret key: {secret_key}"
             return render_template("manage_servers.html", message=message, servers=list(config.keys()))
