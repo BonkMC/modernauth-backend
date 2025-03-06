@@ -1,0 +1,303 @@
+{
+    "bonk-network": {
+        "User1": {
+            "sub": "auth0|67a6dca9a1472d1679c40187",
+            "name": "user1@bonknetwork.com",
+            "email": "user1@bonknetwork.com"
+        },
+        "User3": {
+            "sub": "auth0|abcdefabcdefabcdefabcdef",
+            "name": "user3@bonknetwork.com",
+            "email": "user3@bonknetwork.com"
+        },
+        "User4": {
+            "sub": "auth0|1234567890abcdef12345678",
+            "name": "user4@bonknetwork.com",
+            "email": "user4@bonknetwork.com"
+        },
+        "User5": {
+            "sub": "auth0|fedcba9876543210fedcba98",
+            "name": "user5@bonknetwork.com",
+            "email": "user5@bonknetwork.com"
+        },
+        "User6": {
+            "sub": "auth0|111111111111111111111111",
+            "name": "user6@bonknetwork.com",
+            "email": "user6@bonknetwork.com"
+        },
+        "User7": {
+            "sub": "auth0|222222222222222222222222",
+            "name": "user7@bonknetwork.com",
+            "email": "user7@bonknetwork.com"
+        },
+        "User8": {
+            "sub": "auth0|333333333333333333333333",
+            "name": "user8@bonknetwork.com",
+            "email": "user8@bonknetwork.com"
+        },
+        "User9": {
+            "sub": "auth0|444444444444444444444444",
+            "name": "user9@bonknetwork.com",
+            "email": "user9@bonknetwork.com"
+        },
+        "User10": {
+            "sub": "auth0|555555555555555555555555",
+            "name": "user10@bonknetwork.com",
+            "email": "user10@bonknetwork.com"
+        },
+        "User11": {
+            "sub": "auth0|666666666666666666666666",
+            "name": "user11@bonknetwork.com",
+            "email": "user11@bonknetwork.com"
+        },
+        "User12": {
+            "sub": "auth0|777777777777777777777777",
+            "name": "user12@bonknetwork.com",
+            "email": "user12@bonknetwork.com"
+        },
+        "User13": {
+            "sub": "auth0|888888888888888888888888",
+            "name": "user13@bonknetwork.com",
+            "email": "user13@bonknetwork.com"
+        },
+        "User14": {
+            "sub": "auth0|999999999999999999999999",
+            "name": "user14@bonknetwork.com",
+            "email": "user14@bonknetwork.com"
+        },
+        "User15": {
+            "sub": "auth0|aaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "user15@bonknetwork.com",
+            "email": "user15@bonknetwork.com"
+        },
+        "User16": {
+            "sub": "auth0|bbbbbbbbbbbbbbbbbbbbbbbb",
+            "name": "user16@bonknetwork.com",
+            "email": "user16@bonknetwork.com"
+        },
+        "User17": {
+            "sub": "auth0|cccccccccccccccccccccccc",
+            "name": "user17@bonknetwork.com",
+            "email": "user17@bonknetwork.com"
+        },
+        "User18": {
+            "sub": "auth0|dddddddddddddddddddddddd",
+            "name": "user18@bonknetwork.com",
+            "email": "user18@bonknetwork.com"
+        },
+        "User19": {
+            "sub": "auth0|eeeeeeeeeeeeeeeeeeeeeeee",
+            "name": "user19@bonknetwork.com",
+            "email": "user19@bonknetwork.com"
+        },
+        "User20": {
+            "sub": "auth0|ffffffffffffffffffffffff",
+            "name": "user20@bonknetwork.com",
+            "email": "user20@bonknetwork.com"
+        }
+    },
+    "test-server": {
+        "User1": {
+            "sub": "auth0|123456abcdef123456abcdef",
+            "name": "user1@testserver.com",
+            "email": "user1@testserver.com"
+        },
+        "User2": {
+            "sub": "auth0|abcdef123456abcdef123456",
+            "name": "user2@testserver.com",
+            "email": "user2@testserver.com"
+        },
+        "User3": {
+            "sub": "auth0|11223344556677889900aabb",
+            "name": "user3@testserver.com",
+            "email": "user3@testserver.com"
+        },
+        "User4": {
+            "sub": "auth0|aabbccddeeff001122334455",
+            "name": "user4@testserver.com",
+            "email": "user4@testserver.com"
+        },
+        "User5": {
+            "sub": "auth0|99887766554433221100ffee",
+            "name": "user5@testserver.com",
+            "email": "user5@testserver.com"
+        },
+        "User6": {
+            "sub": "auth0|010101010101010101010101",
+            "name": "user6@testserver.com",
+            "email": "user6@testserver.com"
+        },
+        "User7": {
+            "sub": "auth0|020202020202020202020202",
+            "name": "user7@testserver.com",
+            "email": "user7@testserver.com"
+        },
+        "User8": {
+            "sub": "auth0|030303030303030303030303",
+            "name": "user8@testserver.com",
+            "email": "user8@testserver.com"
+        },
+        "User9": {
+            "sub": "auth0|040404040404040404040404",
+            "name": "user9@testserver.com",
+            "email": "user9@testserver.com"
+        },
+        "User10": {
+            "sub": "auth0|050505050505050505050505",
+            "name": "user10@testserver.com",
+            "email": "user10@testserver.com"
+        },
+        "User11": {
+            "sub": "auth0|060606060606060606060606",
+            "name": "user11@testserver.com",
+            "email": "user11@testserver.com"
+        },
+        "User12": {
+            "sub": "auth0|070707070707070707070707",
+            "name": "user12@testserver.com",
+            "email": "user12@testserver.com"
+        },
+        "User13": {
+            "sub": "auth0|080808080808080808080808",
+            "name": "user13@testserver.com",
+            "email": "user13@testserver.com"
+        },
+        "User14": {
+            "sub": "auth0|090909090909090909090909",
+            "name": "user14@testserver.com",
+            "email": "user14@testserver.com"
+        },
+        "User15": {
+            "sub": "auth0|0a0a0a0a0a0a0a0a0a0a0a0a",
+            "name": "user15@testserver.com",
+            "email": "user15@testserver.com"
+        },
+        "User16": {
+            "sub": "auth0|0b0b0b0b0b0b0b0b0b0b0b0b",
+            "name": "user16@testserver.com",
+            "email": "user16@testserver.com"
+        },
+        "User17": {
+            "sub": "auth0|0c0c0c0c0c0c0c0c0c0c0c0c",
+            "name": "user17@testserver.com",
+            "email": "user17@testserver.com"
+        },
+        "User18": {
+            "sub": "auth0|0d0d0d0d0d0d0d0d0d0d0d0d",
+            "name": "user18@testserver.com",
+            "email": "user18@testserver.com"
+        },
+        "User19": {
+            "sub": "auth0|0e0e0e0e0e0e0e0e0e0e0e0e",
+            "name": "user19@testserver.com",
+            "email": "user19@testserver.com"
+        },
+        "User20": {
+            "sub": "auth0|0f0f0f0f0f0f0f0f0f0f0f0f",
+            "name": "user20@testserver.com",
+            "email": "user20@testserver.com"
+        }
+    },
+    "demo-server": {
+        "User1": {
+            "sub": "auth0|abcdefabcdefabcdefabcdef",
+            "name": "user1@demoserver.com",
+            "email": "user1@demoserver.com"
+        },
+        "User2": {
+            "sub": "auth0|fedcbafedcbafedcbafedcba",
+            "name": "user2@demoserver.com",
+            "email": "user2@demoserver.com"
+        },
+        "User3": {
+            "sub": "auth0|123123123123123123123123",
+            "name": "user3@demoserver.com",
+            "email": "user3@demoserver.com"
+        },
+        "User4": {
+            "sub": "auth0|321321321321321321321321",
+            "name": "user4@demoserver.com",
+            "email": "user4@demoserver.com"
+        },
+        "User5": {
+            "sub": "auth0|aaaabbbbccccddddeeeeffff",
+            "name": "user5@demoserver.com",
+            "email": "user5@demoserver.com"
+        },
+        "User6": {
+            "sub": "auth0|ffffeeeedddcccbbbbaaaa11",
+            "name": "user6@demoserver.com",
+            "email": "user6@demoserver.com"
+        },
+        "User7": {
+            "sub": "auth0|112233001122330011223300",
+            "name": "user7@demoserver.com",
+            "email": "user7@demoserver.com"
+        },
+        "User8": {
+            "sub": "auth0|445566774455667744556677",
+            "name": "user8@demoserver.com",
+            "email": "user8@demoserver.com"
+        },
+        "User9": {
+            "sub": "auth0|8899aabbcc8899aabbcc8899",
+            "name": "user9@demoserver.com",
+            "email": "user9@demoserver.com"
+        },
+        "User10": {
+            "sub": "auth0|99aabbccddeeff0011223344",
+            "name": "user10@demoserver.com",
+            "email": "user10@demoserver.com"
+        },
+        "User11": {
+            "sub": "auth0|deadbeefdeadbeefdeadbeef",
+            "name": "user11@demoserver.com",
+            "email": "user11@demoserver.com"
+        },
+        "User12": {
+            "sub": "auth0|beefdeadbeefdeadbeefdead",
+            "name": "user12@demoserver.com",
+            "email": "user12@demoserver.com"
+        },
+        "User13": {
+            "sub": "auth0|cafebabecafebabecafebabe",
+            "name": "user13@demoserver.com",
+            "email": "user13@demoserver.com"
+        },
+        "User14": {
+            "sub": "auth0|babecafebabecafe11223344",
+            "name": "user14@demoserver.com",
+            "email": "user14@demoserver.com"
+        },
+        "User15": {
+            "sub": "auth0|00112233445566778899aabb",
+            "name": "user15@demoserver.com",
+            "email": "user15@demoserver.com"
+        },
+        "User16": {
+            "sub": "auth0|bbccddeeff00112233445566",
+            "name": "user16@demoserver.com",
+            "email": "user16@demoserver.com"
+        },
+        "User17": {
+            "sub": "auth0|66778899aabbccddeeff0011",
+            "name": "user17@demoserver.com",
+            "email": "user17@demoserver.com"
+        },
+        "User18": {
+            "sub": "auth0|ffeeddccbbaa998877665544",
+            "name": "user18@demoserver.com",
+            "email": "user18@demoserver.com"
+        },
+        "User19": {
+            "sub": "auth0|123abc123abc123abc123abc",
+            "name": "user19@demoserver.com",
+            "email": "user19@demoserver.com"
+        },
+        "User20": {
+            "sub": "auth0|cba321cba321cba321cba321",
+            "name": "user20@demoserver.com",
+            "email": "user20@demoserver.com"
+        }
+    }
+}
