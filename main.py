@@ -24,7 +24,7 @@ oauth.register(
     server_metadata_url=f"https://{os.getenv('AUTH0_DOMAIN')}/.well-known/openid-configuration",
 )
 
-userdb = UserDB()
+userdb = UserDB(mysql_connection=os.getenv("MYSQL"))
 tokensdb = TokenSystemDB()
 admin_db = AdminDB()
 
