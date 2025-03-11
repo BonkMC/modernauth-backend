@@ -1,45 +1,148 @@
 import json
-import os
+from sqlalchemy import create_engine, Table, Column, String, MetaData
+from sqlalchemy.exc import SQLAlchemyError
 
 class UserDB:
-    def __init__(self, filename="data/database.json"):
-        self.filename = filename
-        if not os.path.exists(self.filename):
-            with open(self.filename, "w") as f:
-                json.dump({}, f)
+    def __init__(self, mysql_connection):
+        # Ensure the connection string uses PyMySQL.
+        mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
+        self.engine = create_engine(mysql_connection, echo=False)
+        self.metadata = MetaData()
+        # Define the "users" table with composite primary keys on server_id and username.
+        self.users = Table(
+            'users', self.metadata,
+            Column('server_id', String(255), primary_key=True, nullable=False),
+            Column('username', String(255), primary_key=True, nullable=False),
+            Column('email', String(255)),
+            Column('sub', String(255)),
+            Column('authdata', String(1024))  # Stores authdata as a JSON string.
+        )
+        self.metadata.create_all(self.engine)
 
     def load(self):
+        """
+        Reads all user data from the MySQL table and returns a dictionary in the format:
+        { server_id: { username: authdata_dict } }
+        """
+        data = {}
         try:
-            with open(self.filename, "r") as f:
-                return json.load(f)
-        except Exception:
+            with self.engine.connect() as conn:
+                result = conn.execute(self.users.select()).mappings()
+                for row in result:
+                    server_id = row['server_id']
+                    username = row['username']
+                    try:
+                        authdata = json.loads(row['authdata'])
+                    except Exception:
+                        authdata = {}
+                    if server_id not in data:
+                        data[server_id] = {}
+                    data[server_id][username] = authdata
+        except SQLAlchemyError:
             return {}
+        return data
 
     def save(self, data):
-        with open(self.filename, "w") as f:
-            json.dump(data, f, indent=4)
+        """
+        Clears the current MySQL table and repopulates it using the given data dictionary.
+        The data dictionary is expected to be in the format:
+        { server_id: { username: authdata_dict } }
+        """
+        try:
+            with self.engine.begin() as conn:
+                # Clear existing data.
+                conn.execute(self.users.delete())
+                # Insert every user from the dictionary.
+                for server_id, users in data.items():
+                    for username, authdata in users.items():
+                        email = authdata.get("email")
+                        sub = authdata.get("sub")
+                        authdata_str = json.dumps(authdata)
+                        ins = self.users.insert().values(
+                            server_id=server_id,
+                            username=username,
+                            email=email,
+                            sub=sub,
+                            authdata=authdata_str
+                        )
+                        conn.execute(ins)
+            return True
+        except SQLAlchemyError:
+            return False
 
     def isuser(self, server_id, username):
-        data = self.load()
-        return server_id in data and username in data[server_id]
+        """
+        Checks if a user exists in the database.
+        Returns True if found, False otherwise.
+        """
+        try:
+            with self.engine.connect() as conn:
+                sel = self.users.select().where(
+                    self.users.c.server_id == server_id
+                ).where(
+                    self.users.c.username == username
+                )
+                result = conn.execute(sel).mappings().fetchone()
+                return result is not None
+        except SQLAlchemyError:
+            return False
 
     def signup(self, server_id, username, authdata):
-        data = self.load()
-        if server_id not in data:
-            data[server_id] = {}
-        # Prevent duplicate registration: check if email already exists in this server.
-        for existing_username, details in data[server_id].items():
-            if details.get("email") == authdata.get("email"):
-                return False
-        if username not in data[server_id]:
-            data[server_id][username] = authdata
-            self.save(data)
+        """
+        Registers a new user if:
+          - No user with the same email exists for the given server_id.
+          - The username is not already taken for that server_id.
+        Returns True on successful signup, False if registration fails.
+        """
+        email_to_check = authdata.get("email")
+        try:
+            with self.engine.begin() as conn:
+                # Check for duplicate email in the same server.
+                sel = self.users.select().where(
+                    self.users.c.server_id == server_id
+                )
+                result = conn.execute(sel).mappings().fetchall()
+                for row in result:
+                    if row['email'] == email_to_check:
+                        return False
+
+                # Check if the username is already registered.
+                sel = self.users.select().where(
+                    self.users.c.server_id == server_id
+                ).where(
+                    self.users.c.username == username
+                )
+                if conn.execute(sel).mappings().fetchone():
+                    return False
+
+                # Insert new user.
+                ins = self.users.insert().values(
+                    server_id=server_id,
+                    username=username,
+                    email=email_to_check,
+                    sub=authdata.get("sub"),
+                    authdata=json.dumps(authdata)
+                )
+                conn.execute(ins)
             return True
-        return False
+        except SQLAlchemyError:
+            return False
 
     def login(self, server_id, username, authdata):
-        data = self.load()
-        if (server_id in data and username in data[server_id] and
-            data[server_id][username].get("sub") == authdata.get("sub")):
-            return True
+        """
+        Verifies the user login by checking if the 'sub' field matches for the given user.
+        Returns True if the credentials match, False otherwise.
+        """
+        try:
+            with self.engine.connect() as conn:
+                sel = self.users.select().where(
+                    self.users.c.server_id == server_id
+                ).where(
+                    self.users.c.username == username
+                )
+                row = conn.execute(sel).mappings().fetchone()
+                if row and row['sub'] == authdata.get("sub"):
+                    return True
+        except SQLAlchemyError:
+            return False
         return False

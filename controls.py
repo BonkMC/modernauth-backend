@@ -2,14 +2,17 @@ import os
 import secrets
 import string
 import sys
+from dotenv import load_dotenv
 from admin_db import AdminDB
 from tokensystem import TokenSystemDB
 from server_config import ServerConfig
 
-server_config_obj = ServerConfig()
+load_dotenv()
+
+server_config_obj = ServerConfig(mysql_connection=os.getenv("MYSQL"))
 
 # Change the base URL as needed – this is the public URL for invitation acceptance.
-INVITE_BASE_URL = "http://localhost:3000"
+INVITE_BASE_URL = "https://modernauth-backend-dev.up.railway.app"
 
 
 def generate_secret_key(length=100):
@@ -45,7 +48,7 @@ def remove_server(server_id):
 def invite_admin(invite_email):
     """Generate an invitation link to add a new admin (full access)."""
     token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(30))
-    token_db = TokenSystemDB()
+    token_db = TokenSystemDB(mysql_connection=os.getenv("MYSQL"))
     extra_data = {
         "invite_type": "admin",
         "invite_email": invite_email
@@ -60,7 +63,7 @@ def invite_admin(invite_email):
 def invite_manager(invite_email, servers):
     """Generate an invitation link to add a new server manager (access limited to specified servers)."""
     token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(30))
-    token_db = TokenSystemDB()
+    token_db = TokenSystemDB(mysql_connection=os.getenv("MYSQL"))
     extra_data = {
         "invite_type": "manager",
         "invite_email": invite_email,
@@ -74,7 +77,7 @@ def invite_manager(invite_email, servers):
 
 def remove_admin_cmd(invite_email):
     """Remove admin privileges for a user with the specified email."""
-    admin_db = AdminDB()
+    admin_db = AdminDB(mysql_connection=os.getenv("MYSQL"))
     data = admin_db.load()
     removed = False
     for user_sub in list(data.keys()):
@@ -91,7 +94,7 @@ def remove_admin_cmd(invite_email):
 
 def remove_manager_cmd(invite_email):
     """Remove manager privileges for a user with the specified email."""
-    admin_db = AdminDB()
+    admin_db = AdminDB(mysql_connection=os.getenv("MYSQL"))
     data = admin_db.load()
     removed = False
     for user_sub in list(data.keys()):
