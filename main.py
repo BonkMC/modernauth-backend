@@ -138,7 +138,8 @@ def accept_invite(token):
         message = f"Invitation accepted. You now have manager access to servers: {', '.join(servers)}."
     else:
         return render_template("error.html", message="Unknown invitation type.")
-    tokensdb.authorize_token(token)
+    #tokensdb.authorize_token(token)
+    tokensdb.remove_token(token)
     return render_template("success.html", message=message)
 
 @app.route("/api/createtoken", methods=["POST"])
