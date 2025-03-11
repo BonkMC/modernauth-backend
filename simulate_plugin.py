@@ -1,10 +1,15 @@
-import requests, time, random, string, os
+import os
 
-BASE_URL = "http://10.1.1.116:3000"  # Adjust as needed
+import requests, time, random, string
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BASE_URL = "https://auth.bonkmc.org"  # Adjust as needed
 SERVER_ID = "bonk-network"           # Public server ID
 
 # The secret key is stored securely (for example, in environment variables or a secure config)
-SECRET_KEY = "FbjToFCI4JNGVPJVHpxoFHiBP4IJWddrwFIH45NP21eEDeolNWIYiacKZVT2CDIdyovQiEPEAEgaGDA87SDisp1oI2a2Jm7cfWox"
+SECRET_KEY = os.getenv("BONKMC_CODE")
 
 TOKEN = ''.join(random.choices(string.ascii_letters + string.digits, k=30))
 USERNAME = "PyroEdged"

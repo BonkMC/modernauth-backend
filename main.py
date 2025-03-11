@@ -1,6 +1,8 @@
-import os, json, requests, secrets, string
+import os, requests, secrets, string
 from flask import Flask, redirect, session, url_for, request, render_template, jsonify, send_from_directory
 from authlib.integrations.flask_client import OAuth
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 from urllib.parse import urlencode
 from userdb import UserDB
@@ -12,6 +14,12 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY")
 
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["10000 per day"],
+    storage_uri="memory://",
+)
 
 server_config_obj = ServerConfig(mysql_connection=os.getenv("MYSQL"))
 
