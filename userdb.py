@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class UserDB:
     def __init__(self, mysql_connection):
-        # Create engine using the given MySQL connection string with PyMySQL.
+        # Replace the scheme to ensure PyMySQL is used.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()

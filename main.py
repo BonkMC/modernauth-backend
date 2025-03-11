@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY")
 
 
-server_config_obj = ServerConfig()
+server_config_obj = ServerConfig(mysql_connection=os.getenv("MYSQL"))
 
 oauth = OAuth(app)
 oauth.register(
@@ -25,8 +25,8 @@ oauth.register(
 )
 
 userdb = UserDB(mysql_connection=os.getenv("MYSQL"))
-tokensdb = TokenSystemDB()
-admin_db = AdminDB()
+tokensdb = TokenSystemDB(mysql_connection=os.getenv("MYSQL"))
+admin_db = AdminDB(mysql_connection=os.getenv("MYSQL"))
 
 @app.route('/assets/<path:path>')
 def serve_assets(path):

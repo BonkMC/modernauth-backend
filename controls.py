@@ -2,14 +2,17 @@ import os
 import secrets
 import string
 import sys
+from dotenv import load_dotenv
 from admin_db import AdminDB
 from tokensystem import TokenSystemDB
 from server_config import ServerConfig
 
-server_config_obj = ServerConfig()
+load_dotenv()
+
+server_config_obj = ServerConfig(mysql_connection=os.getenv("MYSQL"))
 
 # Change the base URL as needed – this is the public URL for invitation acceptance.
-INVITE_BASE_URL = "http://localhost:3000"
+INVITE_BASE_URL = "https://modernauth-backend-dev.up.railway.app"
 
 
 def generate_secret_key(length=100):

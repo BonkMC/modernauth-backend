@@ -1,24 +1,62 @@
 import time
 import json
-import os
+from sqlalchemy import create_engine, Table, Column, String, MetaData
+from sqlalchemy.exc import SQLAlchemyError
 
 class TokenSystemDB:
-    def __init__(self, filename="data/tokensystem.json"):
-        self.filename = filename
-        if not os.path.exists(self.filename):
-            with open(self.filename, "w") as f:
-                json.dump({}, f)
+    def __init__(self, mysql_connection):
+        # Ensure the connection uses PyMySQL.
+        mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
+        self.engine = create_engine(mysql_connection, echo=False)
+        self.metadata = MetaData()
+        # Define the "tokensystem" table with token as primary key.
+        self.tokens = Table(
+            'tokensystem', self.metadata,
+            Column('token', String(255), primary_key=True, nullable=False),
+            Column('data', String(4096))  # Stores the token data as a JSON string.
+        )
+        self.metadata.create_all(self.engine)
 
     def load(self):
+        """
+        Reads all token data from the MySQL table and returns a dictionary in the format:
+        { token: token_data_dict }
+        """
+        data = {}
         try:
-            with open(self.filename, "r") as f:
-                return json.load(f)
-        except Exception:
+            with self.engine.connect() as conn:
+                result = conn.execute(self.tokens.select())
+                for row in result:
+                    try:
+                        token_data = json.loads(row['data'])
+                    except Exception:
+                        token_data = {}
+                    data[row['token']] = token_data
+        except SQLAlchemyError:
             return {}
+        return data
 
     def save(self, data):
-        with open(self.filename, "w") as f:
-            json.dump(data, f)
+        """
+        Clears the current MySQL table and repopulates it using the given data dictionary.
+        The data dictionary is expected to be in the format:
+        { token: token_data_dict }
+        """
+        try:
+            with self.engine.begin() as conn:
+                # Clear existing data.
+                conn.execute(self.tokens.delete())
+                # Insert every token from the dictionary.
+                for token, token_data in data.items():
+                    token_json = json.dumps(token_data)
+                    ins = self.tokens.insert().values(
+                        token=token,
+                        data=token_json
+                    )
+                    conn.execute(ins)
+            return True
+        except SQLAlchemyError:
+            return False
 
     def _purge_expired_tokens(self, data):
         now = time.time()
@@ -27,14 +65,15 @@ class TokenSystemDB:
     def create_token(self, username, token, server_id, ttl=600, extra_data=None):
         data = self.load()
         data = self._purge_expired_tokens(data)
-        data[token] = {
+        token_data = {
             "username": username,
             "server_id": server_id,
             "expiration_time": time.time() + ttl,
             "authorized": False
         }
         if extra_data:
-            data[token].update(extra_data)
+            token_data.update(extra_data)
+        data[token] = token_data
         self.save(data)
         return token
 

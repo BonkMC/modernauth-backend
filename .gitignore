@@ -3,4 +3,4 @@
 *.iml
 .directory
 .idea
-testmysql.py
+data

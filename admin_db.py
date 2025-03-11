@@ -1,23 +1,56 @@
 import json
-import os
+from sqlalchemy import create_engine, Table, Column, String, MetaData
+from sqlalchemy.exc import SQLAlchemyError
 
 class AdminDB:
-    def __init__(self, filename="data/admindb.json"):
-        self.filename = filename
-        if not os.path.exists(self.filename):
-            with open(self.filename, "w") as f:
-                json.dump({}, f)
+    def __init__(self, mysql_connection):
+        # Modify the connection string to use PyMySQL.
+        mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
+        self.engine = create_engine(mysql_connection, echo=False)
+        self.metadata = MetaData()
+        # Define the "admindb" table with user_sub as primary key.
+        self.admin_table = Table(
+            'admindb', self.metadata,
+            Column('user_sub', String(255), primary_key=True, nullable=False),
+            Column('data', String(4096))  # Stores the admin record as a JSON string.
+        )
+        self.metadata.create_all(self.engine)
 
     def load(self):
+        """
+        Reads all admin data from the MySQL table and returns a dictionary.
+        """
+        data = {}
         try:
-            with open(self.filename, "r") as f:
-                return json.load(f)
-        except Exception:
+            with self.engine.connect() as conn:
+                result = conn.execute(self.admin_table.select())
+                for row in result:
+                    try:
+                        record = json.loads(row['data'])
+                    except Exception:
+                        record = {}
+                    data[row['user_sub']] = record
+            return data
+        except SQLAlchemyError:
             return {}
 
     def save(self, data):
-        with open(self.filename, "w") as f:
-            json.dump(data, f, indent=4)
+        """
+        Clears the current MySQL table and repopulates it using the given data dictionary.
+        """
+        try:
+            with self.engine.begin() as conn:
+                conn.execute(self.admin_table.delete())
+                for user_sub, record in data.items():
+                    rec_json = json.dumps(record)
+                    ins = self.admin_table.insert().values(
+                        user_sub=user_sub,
+                        data=rec_json
+                    )
+                    conn.execute(ins)
+            return True
+        except SQLAlchemyError:
+            return False
 
     def is_admin(self, user_sub):
         data = self.load()
