@@ -3,20 +3,18 @@ from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
 class UserDB:
-    def __init__(self, mysql_connection):
-        # Create engine using the given MySQL connection string.
+    def __init__(self, mysql_connection="mysql+pymysql://user:pass@localhost/dbname"):
+        # Create engine using the given MySQL connection string with PyMySQL.
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
-        # Define a table with server_id and username as composite primary keys.
-        # Also storing email and sub separately (extracted from authdata) for easier queries.
-        # The full authdata is stored as a JSON string.
+        # Define the "users" table with composite primary keys on server_id and username.
         self.users = Table(
             'users', self.metadata,
             Column('server_id', String(255), primary_key=True, nullable=False),
             Column('username', String(255), primary_key=True, nullable=False),
             Column('email', String(255)),
             Column('sub', String(255)),
-            Column('authdata', String(1024))  # store authdata as a JSON string
+            Column('authdata', String(1024))  # Stores authdata as a JSON string.
         )
         # Create the table if it doesn't exist.
         self.metadata.create_all(self.engine)
@@ -41,7 +39,6 @@ class UserDB:
                         data[server_id] = {}
                     data[server_id][username] = authdata
         except SQLAlchemyError:
-            # In case of error, return empty dictionary
             return {}
         return data
 
