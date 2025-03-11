@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class UserDB:
     def __init__(self, mysql_connection):
-        # Replace the scheme to ensure PyMySQL is used.
+        # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
@@ -17,7 +17,6 @@ class UserDB:
             Column('sub', String(255)),
             Column('authdata', String(1024))  # Stores authdata as a JSON string.
         )
-        # Create the table if it doesn't exist.
         self.metadata.create_all(self.engine)
 
     def load(self):
@@ -28,7 +27,7 @@ class UserDB:
         data = {}
         try:
             with self.engine.connect() as conn:
-                result = conn.execute(self.users.select())
+                result = conn.execute(self.users.select()).mappings()
                 for row in result:
                     server_id = row['server_id']
                     username = row['username']
@@ -83,7 +82,7 @@ class UserDB:
                 ).where(
                     self.users.c.username == username
                 )
-                result = conn.execute(sel).fetchone()
+                result = conn.execute(sel).mappings().fetchone()
                 return result is not None
         except SQLAlchemyError:
             return False
@@ -102,7 +101,7 @@ class UserDB:
                 sel = self.users.select().where(
                     self.users.c.server_id == server_id
                 )
-                result = conn.execute(sel).fetchall()
+                result = conn.execute(sel).mappings().fetchall()
                 for row in result:
                     if row['email'] == email_to_check:
                         return False
@@ -113,7 +112,7 @@ class UserDB:
                 ).where(
                     self.users.c.username == username
                 )
-                if conn.execute(sel).fetchone():
+                if conn.execute(sel).mappings().fetchone():
                     return False
 
                 # Insert new user.
@@ -141,7 +140,7 @@ class UserDB:
                 ).where(
                     self.users.c.username == username
                 )
-                row = conn.execute(sel).fetchone()
+                row = conn.execute(sel).mappings().fetchone()
                 if row and row['sub'] == authdata.get("sub"):
                     return True
         except SQLAlchemyError:

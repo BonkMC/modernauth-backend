@@ -48,7 +48,7 @@ def remove_server(server_id):
 def invite_admin(invite_email):
     """Generate an invitation link to add a new admin (full access)."""
     token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(30))
-    token_db = TokenSystemDB()
+    token_db = TokenSystemDB(mysql_connection=os.getenv("MYSQL"))
     extra_data = {
         "invite_type": "admin",
         "invite_email": invite_email
@@ -63,7 +63,7 @@ def invite_admin(invite_email):
 def invite_manager(invite_email, servers):
     """Generate an invitation link to add a new server manager (access limited to specified servers)."""
     token = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(30))
-    token_db = TokenSystemDB()
+    token_db = TokenSystemDB(mysql_connection=os.getenv("MYSQL"))
     extra_data = {
         "invite_type": "manager",
         "invite_email": invite_email,
@@ -77,7 +77,7 @@ def invite_manager(invite_email, servers):
 
 def remove_admin_cmd(invite_email):
     """Remove admin privileges for a user with the specified email."""
-    admin_db = AdminDB()
+    admin_db = AdminDB(mysql_connection=os.getenv("MYSQL"))
     data = admin_db.load()
     removed = False
     for user_sub in list(data.keys()):
@@ -94,7 +94,7 @@ def remove_admin_cmd(invite_email):
 
 def remove_manager_cmd(invite_email):
     """Remove manager privileges for a user with the specified email."""
-    admin_db = AdminDB()
+    admin_db = AdminDB(mysql_connection=os.getenv("MYSQL"))
     data = admin_db.load()
     removed = False
     for user_sub in list(data.keys()):

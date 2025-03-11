@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class AdminDB:
     def __init__(self, mysql_connection):
-        # Modify the connection string to use PyMySQL.
+        # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
@@ -23,7 +23,7 @@ class AdminDB:
         data = {}
         try:
             with self.engine.connect() as conn:
-                result = conn.execute(self.admin_table.select())
+                result = conn.execute(self.admin_table.select()).mappings()
                 for row in result:
                     try:
                         record = json.loads(row['data'])

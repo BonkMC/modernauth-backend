@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class ServerConfig:
     def __init__(self, mysql_connection):
-        # Use PyMySQL by adjusting the connection string.
+        # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
@@ -23,7 +23,7 @@ class ServerConfig:
         try:
             data = {}
             with self.engine.connect() as conn:
-                result = conn.execute(self.config_table.select())
+                result = conn.execute(self.config_table.select()).mappings()
                 for row in result:
                     try:
                         config_data = json.loads(row['config'])

@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class TokenSystemDB:
     def __init__(self, mysql_connection):
-        # Ensure the connection uses PyMySQL.
+        # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
@@ -25,7 +25,7 @@ class TokenSystemDB:
         data = {}
         try:
             with self.engine.connect() as conn:
-                result = conn.execute(self.tokens.select())
+                result = conn.execute(self.tokens.select()).mappings()
                 for row in result:
                     try:
                         token_data = json.loads(row['data'])
