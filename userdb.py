@@ -3,8 +3,9 @@ from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
 class UserDB:
-    def __init__(self, mysql_connection="mysql+pymysql://user:pass@localhost/dbname"):
+    def __init__(self, mysql_connection):
         # Create engine using the given MySQL connection string with PyMySQL.
+        mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
         # Define the "users" table with composite primary keys on server_id and username.
