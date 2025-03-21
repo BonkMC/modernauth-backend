@@ -53,6 +53,10 @@ def home():
 def whoweare():
     return render_template("whoweare.html")
 
+@app.route("/developers")
+def developers():
+    return render_template("developers.html")
+
 @app.route("/login")
 def login():
     return oauth.auth0.authorize_redirect(
