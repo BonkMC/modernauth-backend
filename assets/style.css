@@ -9,17 +9,17 @@
 
 body {
   font-family: 'Roboto', sans-serif;
-  background: #000; /* Dark background */
-  color: #fff;       /* White text for contrast */
+  background: #000;
+  color: #fff;
   min-height: 100vh;
   line-height: 1.6;
-  padding-top: 70px; /* Space for fixed top nav */
+  padding-top: 70px;
 }
 
 /* Top navigation bar */
 .top-nav {
   width: 100%;
-  background: #000; /* Solid black nav */
+  background: #000;
   padding: 15px 30px;
   display: flex;
   flex-wrap: wrap;
@@ -40,7 +40,7 @@ body {
   letter-spacing: 0.5px;
   padding: 8px 16px;
   border-radius: 20px;
-  background: #222; /* Slightly lighter for a nav-button effect */
+  background: #222;
   transition: background 0.3s ease, transform 0.3s ease;
 }
 
@@ -49,21 +49,21 @@ body {
   transform: translateY(-2px);
 }
 
-/* Logo styling for top right of header */
+/* Logo styling */
 .top-nav .logo {
   position: absolute;
   left: 30px;
   top: 15px;
 }
 .top-nav .logo img {
-  width: 50px;  /* Shrinking the 720x720 logo */
+  width: 50px;
   height: auto;
 }
 
-/* Container styling */
+/* Container styling for regular pages */
 .container {
-  background: #000;       /* Dark container background */
-  border: 1px solid #222; /* Subtle border to define container */
+  background: #000;
+  border: 1px solid #222;
   border-radius: 8px;
   padding: 40px;
   max-width: 800px;
@@ -83,10 +83,10 @@ h1 {
 p {
   font-size: 1.1rem;
   margin-bottom: 20px;
-  color: #ccc; /* Slightly lighter than pure white */
+  color: #ccc;
 }
 
-/* Accent button styling: Purple gradient */
+/* Accent button styling */
 .button {
   display: inline-block;
   padding: 14px 28px;
@@ -111,14 +111,14 @@ table.admin-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
-  color: #fff;   /* White text */
+  color: #fff;
 }
 
 table.admin-table th,
 table.admin-table td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #333; /* Darker border lines */
+  border-bottom: 1px solid #333;
 }
 
 table.admin-table th {
@@ -190,4 +190,106 @@ table.admin-table tr:hover {
     padding: 10px 20px;
     font-size: 0.9rem;
   }
+}
+
+/* 404 Page Styles */
+.error-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 80vh;
+  text-align: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0 auto;
+}
+
+.error-404 {
+  font-size: 6rem;
+  color: #ef4444;
+  font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
+  margin: 0;
+}
+
+.error-message {
+  font-size: 1.25rem;
+  color: #ccc;
+  margin-top: 20px;
+}
+
+/* Pong game button styles (more hidden, smaller, and black) */
+.pong-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: #000;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: bold;
+  z-index: 1100;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
+.pong-button:hover {
+  opacity: 1;
+}
+
+/* Pong modal styles */
+.pong-modal {
+  display: none;
+  position: fixed;
+  z-index: 1200;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.8);
+}
+
+.pong-modal-content {
+  position: relative;
+  margin: 5% auto;
+  padding: 20px;
+  width: 500px;
+  max-width: 90%;
+  background: #000;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.pong-close {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  color: #fff;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Scoreboard styling for Pong */
+#scoreboard {
+  color: #fff;
+  font-size: 18px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* Canvas styling for Pong */
+#pongCanvas {
+  background: #111;
+  border: 1px solid #333;
+  display: block;
+  margin: 0 auto;
 }

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 - Page Not Found</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <header class="top-nav">
+    <a class="button" href="/">Home</a>
+    <div class="logo">
+      <img src="/assets/ma_logo.png" alt="Logo">
+    </div>
+  </header>
+  <div class="container error-page">
+    <h1 class="error-404">404</h1>
+    <p class="error-message">
+      Oops! The page you're looking for took a day off. But don’t worry—great things are just a click away!
+    </p>
+  </div>
+
+  <!-- Pong game button (now smaller, black, and semi-hidden) -->
+  <div id="pong-button" class="pong-button">Pong</div>
+
+  <!-- Pong game modal -->
+  <div id="pong-modal" class="pong-modal">
+    <div class="pong-modal-content">
+      <span id="pong-close" class="pong-close">&times;</span>
+      <div id="scoreboard">Player: 0 | Bot: 0</div>
+      <canvas id="pongCanvas" width="480" height="320"></canvas>
+      <p style="color: #fff; font-size: 14px;">Use Arrow keys or W/S to move your paddle.</p>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const botMissChance = 0.2; // 20% chance to introduce a miss offset for each rally
+
+    // Global variables for the bot offset
+    let botOffset = 0;
+    let botOffsetComputed = false;
+
+    // Set up canvas and context
+    const canvas = document.getElementById('pongCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Score variables
+    let playerScore = 0;
+    let botScore = 0;
+
+    // Ball properties
+    let ball = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      radius: 10,
+      speed: 4,
+      dx: 4,
+      dy: -4
+    };
+
+    // Player paddle (left)
+    let paddle = {
+      width: 10,
+      height: 75,
+      x: 10,
+      y: canvas.height / 2 - 75 / 2,
+      dy: 0,
+      speed: 6
+    };
+
+    // Computer paddle (right)
+    let rightPaddle = {
+      width: 10,
+      height: 75,
+      x: canvas.width - 20,
+      y: canvas.height / 2 - 75 / 2,
+      speed: 4
+    };
+
+    let gameInterval;
+
+    // Draw ball on canvas
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#ef4444";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // Draw a paddle on canvas
+    function drawPaddle(x, y, width, height) {
+      ctx.beginPath();
+      ctx.rect(x, y, width, height);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // Update player's paddle position based on keyboard input
+    function updatePlayerPaddle() {
+      paddle.y += paddle.dy;
+      if (paddle.y < 0) paddle.y = 0;
+      if (paddle.y + paddle.height > canvas.height)
+        paddle.y = canvas.height - paddle.height;
+    }
+
+    // Update computer paddle using easing and a computed miss offset
+    function updateComputerPaddle() {
+      // Only update when ball is moving toward the computer
+      if (ball.dx > 0) {
+        let target = ball.y - rightPaddle.height / 2;
+        // Compute a miss offset once per rally if the bot should miss
+        if (!botOffsetComputed && Math.random() < botMissChance) {
+          botOffset = (Math.random() * 100) - 50; // offset in range [-50, 50]
+          botOffsetComputed = true;
+        }
+        target += botOffset;
+        // Smoothly move towards the target using an easing factor
+        rightPaddle.y += (target - rightPaddle.y) * 0.1;
+      } else {
+        // When ball is moving away, recenter paddle slowly
+        rightPaddle.y += ((canvas.height / 2 - rightPaddle.height / 2) - rightPaddle.y) * 0.05;
+        // Reset miss offset for next rally
+        botOffset = 0;
+        botOffsetComputed = false;
+      }
+      // Clamp paddle position within canvas
+      if (rightPaddle.y < 0) rightPaddle.y = 0;
+      if (rightPaddle.y + rightPaddle.height > canvas.height)
+        rightPaddle.y = canvas.height - rightPaddle.height;
+    }
+
+    // Draw everything on the canvas
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBall();
+      drawPaddle(paddle.x, paddle.y, paddle.width, paddle.height);
+      drawPaddle(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+    }
+
+    // Update ball position, detect collisions, and update scores
+    function updateBall() {
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      // Bounce off top and bottom walls
+      if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+        ball.dy = -ball.dy;
+      }
+
+      // Collision with player's paddle
+      if (ball.x - ball.radius < paddle.x + paddle.width &&
+          ball.y > paddle.y && ball.y < paddle.y + paddle.height) {
+        ball.dx = -ball.dx;
+        let collidePoint = ball.y - (paddle.y + paddle.height / 2);
+        collidePoint /= (paddle.height / 2);
+        let angleRad = collidePoint * (Math.PI / 4);
+        ball.dx = ball.speed * Math.cos(angleRad);
+        ball.dy = ball.speed * Math.sin(angleRad);
+        if (ball.dx < 0) ball.dx = -ball.dx;
+      }
+
+      // Collision with computer paddle
+      if (ball.x + ball.radius > rightPaddle.x &&
+          ball.y > rightPaddle.y && ball.y < rightPaddle.y + rightPaddle.height) {
+        ball.dx = -ball.dx;
+        let collidePoint = ball.y - (rightPaddle.y + rightPaddle.height / 2);
+        collidePoint /= (rightPaddle.height / 2);
+        let angleRad = collidePoint * (Math.PI / 4);
+        ball.dx = -ball.speed * Math.cos(angleRad);
+        ball.dy = ball.speed * Math.sin(angleRad);
+        if (ball.dx > 0) ball.dx = -ball.dx;
+      }
+
+      // Update score if ball goes out of bounds
+      if (ball.x + ball.radius < 0) {
+        // Bot wins the point
+        botScore++;
+        updateScore();
+        resetBall();
+      } else if (ball.x - ball.radius > canvas.width) {
+        // Player wins the point
+        playerScore++;
+        updateScore();
+        resetBall();
+      }
+    }
+
+    // Update the scoreboard display
+    function updateScore() {
+      document.getElementById('scoreboard').innerText =
+        `Player: ${playerScore} | Bot: ${botScore}`;
+    }
+
+    // Reset the ball to the center and reverse its direction
+    function resetBall() {
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+      ball.dx = -ball.dx;
+      ball.dy = -ball.dy;
+      // Reset bot offset for new rally
+      botOffset = 0;
+      botOffsetComputed = false;
+    }
+
+    // Main game loop
+    function gameLoop() {
+      updatePlayerPaddle();
+      updateComputerPaddle();
+      updateBall();
+      draw();
+    }
+
+    // Start and stop game functions
+    function startGame() {
+      gameInterval = setInterval(gameLoop, 1000 / 60);
+    }
+
+    function stopGame() {
+      clearInterval(gameInterval);
+    }
+
+    // Keyboard event listeners for controlling the player's paddle
+    document.addEventListener('keydown', function(e) {
+      if (e.key === "ArrowUp" || e.key.toLowerCase() === 'w') {
+        paddle.dy = -paddle.speed;
+      } else if (e.key === "ArrowDown" || e.key.toLowerCase() === 's') {
+        paddle.dy = paddle.speed;
+      }
+    });
+
+    document.addEventListener('keyup', function(e) {
+      if (e.key === "ArrowUp" || e.key.toLowerCase() === 'w' ||
+          e.key === "ArrowDown" || e.key.toLowerCase() === 's') {
+        paddle.dy = 0;
+      }
+    });
+
+    // Open the pong modal and start the game
+    document.getElementById('pong-button').onclick = function() {
+      document.getElementById('pong-modal').style.display = 'block';
+      startGame();
+    };
+
+    // Close the pong modal and stop the game
+    document.getElementById('pong-close').onclick = function() {
+      document.getElementById('pong-modal').style.display = 'none';
+      stopGame();
+    };
+  </script>
+</body>
+</html>

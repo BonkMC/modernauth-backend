@@ -53,6 +53,10 @@ def home():
 def whoweare():
     return render_template("whoweare.html")
 
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('404.html'), 404
+
 @app.route("/developers")
 def developers():
     return render_template("developers.html")
