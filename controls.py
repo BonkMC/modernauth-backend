@@ -11,7 +11,6 @@ load_dotenv()
 
 server_config_obj = ServerConfig(mysql_connection=os.getenv("MYSQL"))
 
-# Change the base URL as needed – this is the public URL for invitation acceptance.
 INVITE_BASE_URL = "https://auth.bonkmc.org"
 
 
