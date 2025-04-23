@@ -1,4 +1,4 @@
-import sphinx_rtd_theme
+#import sphinx_rtd_theme
 # in docs/source/conf.py
 
 # -- Project information -----------------------------------------------------
@@ -18,5 +18,5 @@ exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 html_theme = "furo"
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+#html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
