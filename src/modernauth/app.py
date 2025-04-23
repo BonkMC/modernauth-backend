@@ -42,33 +42,17 @@ DOCS_DIR = os.path.join(BASE_DIR, 'docs', 'build', 'html')
 
 @app.route("/developers/")
 def developers():
-    # reroute to the docs index page
-    return redirect(url_for("docs_index"))
+    return redirect('https://docs.bonkmc.org', code=302)
 
 
 @app.route('/docs/')
 def docs_index():
-    index_path = os.path.join(DOCS_DIR, 'index.html')
-    if os.path.isfile(index_path):
-        return send_from_directory(DOCS_DIR, 'index.html')
-    # fall back to your custom 404 template
-    return render_template('404.html'), 404
-
-
-# Serve any other file under the docs tree, or render 404 if missing
-@app.route('/docs/<path:filename>')
-def docs_static(filename):
-    # resolve the absolute path and guard against traversal
-    file_path = os.path.abspath(os.path.join(DOCS_DIR, filename))
-    if file_path.startswith(os.path.abspath(DOCS_DIR)) and os.path.isfile(file_path):
-        return send_from_directory(DOCS_DIR, filename)
-    return render_template('404.html'), 404
+    return redirect('https://docs.bonkmc.org', code=302)
 
 
 @app.route('/assets/<path:path>')
 def serve_assets(path):
     return send_from_directory(os.path.join(os.path.dirname(__file__), 'assets'), path)
-
 
 @app.route("/")
 def home():

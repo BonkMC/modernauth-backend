@@ -1,0 +1,29 @@
+/* docs/source/_static/custom.css */
+
+.github-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  margin: 1.5em 0;
+}
+
+.github-buttons a {
+  flex: 1;
+  text-align: center;
+  padding: 0.6em 1.2em;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.github-buttons a.btn-backend   { background-color: #24292e; }
+.github-buttons a.btn-spigot    { background-color: #1e40af; }
+.github-buttons a.btn-velocity  { background-color: #006b75; }
+.github-buttons a.btn-org       { background-color: #dd4814; }
+
+.github-buttons a:hover {
+  filter: brightness(115%);
+  transform: translateY(-1px);
+}
