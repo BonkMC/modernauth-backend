@@ -9,7 +9,7 @@ BASE_URL = "https://auth.bonkmc.org"  # Adjust as needed
 SERVER_ID = "bonk-network"           # Public server ID
 
 # The secret key is stored securely (for example, in environment variables or a secure config)
-SECRET_KEY = os.getenv("BONKMC_CODE")
+SECRET_KEY = os.getenv("TEST_SERVER_CODE")
 
 TOKEN = ''.join(random.choices(string.ascii_letters + string.digits, k=30))
 USERNAME = "PyroEdged"

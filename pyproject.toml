@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modernauth"
+version = "0.1.0"
+description = "ModernAuthentication service for Minecraft Spigot plugin"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+  "Flask",
+  "Authlib",
+  "python-dotenv",
+  "SQLAlchemy",
+  "PyMySQL",
+  "Flask-Limiter",
+]
+
+[project.scripts]
+# entry point for your web app
+modernauth = "modernauth.app:app"
+# optional CLI tools
+controls  = "modernauth.scripts.controls:main"
+simulate  = "modernauth.scripts.simulate:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

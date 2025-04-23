@@ -1,1 +1,1 @@
-web: gunicorn main:app --bind 0.0.0.0:$PORT
+web: gunicorn -w 4 modernauth.app:app --bind 0.0.0.0:$PORT
