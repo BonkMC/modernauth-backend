@@ -7,17 +7,17 @@ Welcome to the ModernAuth API docs!
      <a class="btn-backend"
         href="https://github.com/bonknetwork/modernauth-backend"
         target="_blank">
-       Backend<br>GitHub
+       Backend<br>GitHub<br>
      </a>
      <a class="btn-spigot"
         href="https://github.com/bonknetwork/modernauth-spigot"
         target="_blank">
-       Spigot Plugin GitHub
+       Spigot Plugin GitHub<br>
      </a>
      <a class="btn-velocity"
         href="https://github.com/bonknetwork/modernauth-velocity"
         target="_blank">
-       Velocity Plugin GitHub
+       Velocity Plugin GitHub<br>
      </a>
      <a class="btn-org"
         href="https://github.com/bonknetwork/"

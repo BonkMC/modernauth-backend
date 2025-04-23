@@ -1,12 +1,103 @@
 /* docs/source/_static/custom.css */
 
+/* 1) Import your fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600&display=swap');
+
+/* 2) Force Furo’s font vars */
+:root {
+  --font-stack: 'Inter', sans-serif !important;
+  --font-stack--monospace: 'Source Code Pro', Menlo, monospace !important;
+}
+
+/* 3) DARK MODE STYLES */
+html[data-theme="dark"] {
+  /* page & sidebar */
+  body, .wy-nav-content, .wy-nav-side, .wy-nav-top {
+    background: #0F0F0F !important;
+    color: #FFFFFF   !important;
+  }
+
+  /* logo size */
+  .wy-nav-top a.logo img {
+    height: 1em !important;
+    margin-right: .5rem;
+  }
+
+  /* prose & headings */
+  h1, h2, h3, h4, h5, h6,
+  p, li, dt, dd {
+    color: #FFFFFF !important;
+  }
+
+  /* all links white & underlined */
+  a.reference.internal,
+  a.reference.external {
+    color: #FFFFFF            !important;
+    text-decoration: underline !important;
+  }
+
+  /* sidebar nav links */
+  .wy-nav-side a {
+    color: #FFFFFF !important;
+  }
+  .wy-nav-side a:hover,
+  .wy-nav-side a.current,
+  .wy-nav-side a.current:hover {
+    background: #1A1A1A !important;
+    color: #FFFFFF     !important;
+  }
+
+  /* code blocks */
+  .highlight pre,
+  pre.literal-block {
+    background: #1A1A1A !important;
+    border: 1px solid #333333 !important;
+    border-radius: .375rem !important;
+    padding: 1rem !important;
+    overflow-x: auto;
+  }
+  .highlight .linenos {
+    background: #0F0F0F !important;
+    color: #BBBBBB   !important;
+    padding-right: .5rem !important;
+  }
+  p code, li code, td code {
+    background: #1A1A1A !important;
+    padding: .2rem .4rem;
+    border-radius: .25rem;
+  }
+
+  /* tables */
+  table.docutils {
+    border: 1px solid #333333 !important;
+  }
+  table.docutils th,
+  table.docutils td {
+    border: 1px solid #333333 !important;
+    padding: .5rem !important;
+  }
+  table.docutils th {
+    background: #1A1A1A !important;
+    font-weight: 600;
+  }
+
+  /* blockquotes */
+  blockquote {
+    border-left: .25rem solid #333333 !important;
+    background: #1A1A1A              !important;
+    padding: .5rem 1rem;
+    margin: 1em 0;
+  }
+}
+
+/* 4) YOUR GITHUB BUTTONS (always on, only affects .github-buttons) */
 .github-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
   margin: 1.5em 0;
 }
-
 .github-buttons a {
   flex: 1;
   text-align: center;
@@ -17,12 +108,10 @@
   border-radius: 4px;
   transition: background-color 0.2s ease, transform 0.1s ease;
 }
-
 .github-buttons a.btn-backend   { background-color: #24292e; }
 .github-buttons a.btn-spigot    { background-color: #1e40af; }
 .github-buttons a.btn-velocity  { background-color: #006b75; }
 .github-buttons a.btn-org       { background-color: #dd4814; }
-
 .github-buttons a:hover {
   filter: brightness(115%);
   transform: translateY(-1px);
