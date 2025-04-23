@@ -5,10 +5,10 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 from urllib.parse import urlencode
-from db.userdb import UserDB
-from db.tokensystem import TokenSystemDB
-from db.admin_db import AdminDB
-from db.server_config import ServerConfig
+from modernauth.db.userdb import UserDB
+from modernauth.db.tokensystem import TokenSystemDB
+from modernauth.db.admin_db import AdminDB
+from modernauth.db.server_config import ServerConfig
 
 load_dotenv()
 app = Flask(__name__)
