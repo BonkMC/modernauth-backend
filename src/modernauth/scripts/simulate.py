@@ -5,10 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BASE_URL = "https://auth.bonkmc.org"  # Adjust as needed
-SERVER_ID = "bonk-network"           # Public server ID
+BASE_URL = os.getenv("BASE_URL")
+SERVER_ID = os.getenv("TEST_SERVER_ID")
 
-# The secret key is stored securely (for example, in environment variables or a secure config)
 SECRET_KEY = os.getenv("TEST_SERVER_CODE")
 
 TOKEN = ''.join(random.choices(string.ascii_letters + string.digits, k=30))
@@ -16,7 +15,6 @@ USERNAME = "PyroEdged"
 
 def main():
     headers = {"X-Server-Secret": SECRET_KEY}
-    # Create a token using the new secure API endpoint
     payload = {
         "server_id": SERVER_ID,
         "token": TOKEN,

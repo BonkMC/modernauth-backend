@@ -18,11 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-# entry point for your web app
-modernauth = "modernauth.app:app"
-# optional CLI tools
-controls  = "modernauth.scripts.controls:main"
-simulate  = "modernauth.scripts.simulate:main"
+modernauth = "modernauth.scripts.cli:cli"
 
 [tool.setuptools.packages.find]
 where = ["src"]
