@@ -3,11 +3,12 @@ from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
 class ServerConfig:
-    def __init__(self, mysql_connection):
+    def __init__(self, mysql_connection, hash_function):
         # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
+        self.create_hash = hash_function
         # Define the "server_config" table with server_id as primary key.
         self.config_table = Table(
             'server_config', self.metadata,
@@ -59,7 +60,7 @@ class ServerConfig:
     def update_secret(self, server_id, new_secret):
         config = self.load()
         if server_id in config:
-            config[server_id]["secret_key"] = new_secret
+            config[server_id]["secret_key"] = self.create_hash(new_secret)
             self.save(config)
             return True
         return False

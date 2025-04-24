@@ -9,6 +9,7 @@ from modernauth.db.userdb import UserDB
 from modernauth.db.tokensystem import TokenSystemDB
 from modernauth.db.admin_db import AdminDB
 from modernauth.db.server_config import ServerConfig
+import hashlib
 
 load_dotenv()
 app = Flask(__name__)
@@ -21,8 +22,6 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
-server_config_obj = ServerConfig(mysql_connection=os.getenv("MYSQL"))
-
 oauth = OAuth(app)
 oauth.register(
     "auth0",
@@ -32,13 +31,19 @@ oauth.register(
     server_metadata_url=f"https://{os.getenv('AUTH0_DOMAIN')}/.well-known/openid-configuration",
 )
 
-userdb = UserDB(mysql_connection=os.getenv("MYSQL"))
-tokens_db = TokenSystemDB(mysql_connection=os.getenv("MYSQL"))
-admin_db = AdminDB(mysql_connection=os.getenv("MYSQL"))
-
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DOCS_DIR = os.path.join(BASE_DIR, 'docs', 'build', 'html')
 
+def create_hash(data: str, algorithm: str = 'sha512') -> str:
+    """Create a unique hash of a string using the specified algorithm."""
+    hash_obj = hashlib.new(algorithm)
+    hash_obj.update(data.encode('utf-8'))
+    return hash_obj.hexdigest()
+
+server_config_obj = ServerConfig(mysql_connection=os.getenv("MYSQL"), hash_function=create_hash)
+userdb = UserDB(mysql_connection=os.getenv("MYSQL"))
+tokens_db = TokenSystemDB(mysql_connection=os.getenv("MYSQL"))
+admin_db = AdminDB(mysql_connection=os.getenv("MYSQL"))
 
 @app.route("/developers/")
 def developers():
@@ -187,7 +192,7 @@ def create_token():
         return jsonify(generic_response), 200
     config = server_config_obj.load()
     expected_secret = config.get(server_id, {}).get("secret_key")
-    provided_secret = request.headers.get("X-Server-Secret")
+    provided_secret = create_hash(request.headers.get("X-Server-Secret"))
     if not provided_secret or provided_secret != expected_secret:
         return jsonify(generic_response), 200
     tokens_db.create_token(username, token, server_id=server_id)
@@ -198,7 +203,7 @@ def create_token():
 def auth_status(server_id, token):
     config = server_config_obj.load()
     expected_secret = config.get(server_id, {}).get("secret_key")
-    provided_secret = request.headers.get("X-Server-Secret")
+    provided_secret = create_hash(request.headers.get("X-Server-Secret"))
     if not provided_secret or provided_secret != expected_secret:
         return jsonify({"logged_in": False})
     token_data = tokens_db.get_token_data(token)

@@ -3,6 +3,7 @@ import os
 import secrets
 import string
 from dotenv import load_dotenv
+from modernauth.app import create_hash
 from modernauth.db.admin_db import AdminDB
 from modernauth.db.tokensystem import TokenSystemDB
 from modernauth.db.server_config import ServerConfig
@@ -32,7 +33,7 @@ def add_server(server_id):
         click.echo(f"Server ID '{server_id}' already exists.")
         return
     secret_key = generate_secret_key(100)
-    config[server_id] = {"secret_key": secret_key}
+    config[server_id] = {"secret_key": create_hash(secret_key)}
     config_obj.save(config)
     click.echo(f"Added server '{server_id}' with secret key:")
     click.echo(secret_key)
