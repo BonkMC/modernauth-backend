@@ -1,116 +1,108 @@
-import os, time, json, hashlib, hmac
+import time
+import json
 from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
 class TokenSystemDB:
     def __init__(self, mysql_connection):
-        # HMAC key used to hash tokens at rest
-        # Set TOKEN_HMAC_KEY in your env (e.g. 32-byte base64)
-        self.hmac_key = os.getenv("TOKEN_HMAC_KEY").encode()
-
+        # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
-        # Rename column to token_hash
+        # Define the "tokensystem" table with token as primary key.
         self.tokens = Table(
             'tokensystem', self.metadata,
-            Column('token_hash', String(64), primary_key=True, nullable=False),
-            Column('data', String(4096))
+            Column('token', String(255), primary_key=True, nullable=False),
+            Column('data', String(4096))  # Stores the token data as a JSON string.
         )
         self.metadata.create_all(self.engine)
 
-    def _hash_token(self, token: str) -> str:
-        """Compute HMAC-SHA256(token) → hex digest."""
-        return hmac.new(self.hmac_key, token.encode(), hashlib.sha256).hexdigest()
-
     def load(self):
-        """Returns dict { token_hash: token_data_dict }."""
+        """
+        Reads all token data from the MySQL table and returns a dictionary in the format:
+        { token: token_data_dict }
+        """
         data = {}
         try:
             with self.engine.connect() as conn:
-                rows = conn.execute(self.tokens.select()).mappings()
-                for row in rows:
+                result = conn.execute(self.tokens.select()).mappings()
+                for row in result:
                     try:
                         token_data = json.loads(row['data'])
                     except Exception:
                         token_data = {}
-                    data[row['token_hash']] = token_data
+                    data[row['token']] = token_data
         except SQLAlchemyError:
             return {}
         return data
 
     def save(self, data):
-        """Expects data keyed by token_hash."""
+        """
+        Clears the current MySQL table and repopulates it using the given data dictionary.
+        The data dictionary is expected to be in the format:
+        { token: token_data_dict }
+        """
         try:
             with self.engine.begin() as conn:
+                # Clear existing data.
                 conn.execute(self.tokens.delete())
-                for token_hash, token_data in data.items():
+                # Insert every token from the dictionary.
+                for token, token_data in data.items():
+                    token_json = json.dumps(token_data)
                     ins = self.tokens.insert().values(
-                        token_hash=token_hash,
-                        data=json.dumps(token_data)
+                        token=token,
+                        data=token_json
                     )
                     conn.execute(ins)
             return True
         except SQLAlchemyError:
             return False
 
-    def _purge_expired(self, data):
+    def _purge_expired_tokens(self, data):
         now = time.time()
-        return {h: v for h, v in data.items() if v.get("expiration_time", 0) > now}
+        return {k: v for k, v in data.items() if v.get("expiration_time", 0) > now}
 
     def create_token(self, username, token, server_id, ttl=600, extra_data=None):
-        """
-        Returns the raw token to hand back to the user, but only the HMACed value is ever stored.
-        """
         data = self.load()
-        data = self._purge_expired(data)
-
-        token_hash = self._hash_token(token)
-        token_record = {
+        data = self._purge_expired_tokens(data)
+        token_data = {
             "username": username,
             "server_id": server_id,
             "expiration_time": time.time() + ttl,
             "authorized": False
         }
         if extra_data:
-            token_record.update(extra_data)
-
-        data[token_hash] = token_record
+            token_data.update(extra_data)
+        data[token] = token_data
         self.save(data)
-        return token  # still hand back the raw token
-
-    def get_token_data(self, token):
-        """
-        Lookup by hashing the incoming token.
-        Returns the record or None.
-        """
-        data = self.load()
-        data = self._purge_expired(data)
-        self.save(data)
-
-        h = self._hash_token(token)
-        return data.get(h)
+        return token
 
     def remove_token(self, token):
-        h = self._hash_token(token)
         data = self.load()
-        if h in data:
-            del data[h]
+        if token in data:
+            del data[token]
             self.save(data)
+
+    def purge_expired_tokens(self):
+        data = self.load()
+        data = self._purge_expired_tokens(data)
+        self.save(data)
 
     def check_token(self, token):
         data = self.load()
-        data = self._purge_expired(data)
+        data = self._purge_expired_tokens(data)
         self.save(data)
+        return data[token]["username"] if token in data else None
 
-        h = self._hash_token(token)
-        return data[h]["username"] if h in data else None
+    def get_token_data(self, token):
+        data = self.load()
+        data = self._purge_expired_tokens(data)
+        self.save(data)
+        return data.get(token, None)
 
     def authorize_token(self, token):
-        """Mark an existing token (by raw value) as authorized."""
-        h = self._hash_token(token)
         data = self.load()
-        data = self._purge_expired(data)
-        if h in data:
-            data[h]["authorized"] = True
+        data = self._purge_expired_tokens(data)
+        if token in data:
+            data[token]["authorized"] = True
             self.save(data)

@@ -185,8 +185,10 @@ def create_token():
     username = data.get("username")
     if not server_id or not token or not username:
         return jsonify(generic_response), 200
+    config = server_config_obj.load()
+    expected_secret = config.get(server_id, {}).get("secret_key")
     provided_secret = request.headers.get("X-Server-Secret")
-    if not server_config_obj.verify_secret(server_id, provided_secret):
+    if not provided_secret or provided_secret != expected_secret:
         return jsonify(generic_response), 200
     tokens_db.create_token(username, token, server_id=server_id)
     return jsonify(generic_response), 200
@@ -194,8 +196,10 @@ def create_token():
 
 @app.route("/api/authstatus/<server_id>/<token>", methods=["GET"])
 def auth_status(server_id, token):
+    config = server_config_obj.load()
+    expected_secret = config.get(server_id, {}).get("secret_key")
     provided_secret = request.headers.get("X-Server-Secret")
-    if not server_config_obj.verify_secret(server_id, provided_secret):
+    if not provided_secret or provided_secret != expected_secret:
         return jsonify({"logged_in": False})
     token_data = tokens_db.get_token_data(token)
     if not token_data or token_data.get("server_id") != server_id:
@@ -347,8 +351,11 @@ def reset_code():
     if accessible != "all" and server_id not in accessible:
         return jsonify({"error": "Access denied"}), 403
     new_code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(100))
-    if not server_config_obj.set_secret(server_id, new_code):
+    config = server_config_obj.load()
+    if server_id not in config:
         return jsonify({"error": "Server not found"}), 404
+    config[server_id]["secret_key"] = new_code
+    server_config_obj.save(config)
     return jsonify({"new_code": new_code})
 
 
