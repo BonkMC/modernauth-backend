@@ -1,65 +1,67 @@
-import json
+import os, json, bcrypt
 from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
 class ServerConfig:
     def __init__(self, mysql_connection):
-        # Ensure the connection string uses PyMySQL.
+        # ensure we use PyMySQL driver
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
-        # Define the "server_config" table with server_id as primary key.
+
+        # new schema: server_id + secret_hash (bcrypt)
         self.config_table = Table(
             'server_config', self.metadata,
             Column('server_id', String(255), primary_key=True, nullable=False),
-            Column('config', String(4096))  # Stores the server config as a JSON string.
+            Column('secret_hash', String(128), nullable=False)
         )
         self.metadata.create_all(self.engine)
 
     def load(self):
         """
-        Reads all server configuration from the MySQL table and returns a dictionary.
+        Returns dict { server_id: secret_hash }.
         """
         try:
-            data = {}
             with self.engine.connect() as conn:
-                result = conn.execute(self.config_table.select()).mappings()
-                for row in result:
-                    try:
-                        config_data = json.loads(row['config'])
-                    except Exception:
-                        config_data = {}
-                    data[row['server_id']] = config_data
-            return data
+                rows = conn.execute(self.config_table.select()).mappings()
+                return {r['server_id']: r['secret_hash'] for r in rows}
         except SQLAlchemyError:
             return {}
 
-    def save(self, config):
+    def save(self, data):
         """
-        Clears the current MySQL table and repopulates it using the given config dictionary.
+        data: { server_id: secret_hash }.
+        Clears & repopulates table.
         """
         try:
             with self.engine.begin() as conn:
                 conn.execute(self.config_table.delete())
-                for server_id, conf in config.items():
-                    conf_json = json.dumps(conf)
-                    ins = self.config_table.insert().values(
-                        server_id=server_id,
-                        config=conf_json
+                for server_id, secret_hash in data.items():
+                    conn.execute(
+                        self.config_table.insert().values(
+                            server_id=server_id,
+                            secret_hash=secret_hash
+                        )
                     )
-                    conn.execute(ins)
             return True
         except SQLAlchemyError:
             return False
 
-    def get_secret(self, server_id):
-        config = self.load()
-        return config.get(server_id, {}).get("secret_key")
+    def set_secret(self, server_id, raw_secret):
+        """
+        Hashes raw_secret (bcrypt) and stores it.
+        """
+        hashed = bcrypt.hashpw(raw_secret.encode(), bcrypt.gensalt()).decode()
+        cfg = self.load()
+        cfg[server_id] = hashed
+        return self.save(cfg)
 
-    def update_secret(self, server_id, new_secret):
-        config = self.load()
-        if server_id in config:
-            config[server_id]["secret_key"] = new_secret
-            self.save(config)
-            return True
-        return False
+    def verify_secret(self, server_id, provided_secret):
+        """
+        Returns True if provided_secret matches the stored bcrypt hash.
+        """
+        cfg = self.load()
+        secret_hash = cfg.get(server_id)
+        if not secret_hash:
+            return False
+        return bcrypt.checkpw(provided_secret.encode(), secret_hash.encode())
