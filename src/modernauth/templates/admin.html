@@ -47,7 +47,6 @@
             {% for username, details in users.items() %}
             <tr>
                 <td>{{ username }}</td>
-                <td>{{ details.email }}</td>
                 <td>
                     <form method="post" action="/admin/unregister_user" onsubmit="return confirm('Are you sure you want to unregister this user?');">
                         <input type="hidden" name="server_id" value="{{ selected_server }}">

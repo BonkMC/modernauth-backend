@@ -27,7 +27,7 @@ def cli():
 @click.argument("server_id")
 def add_server(server_id):
     """Add a new server with the specified SERVER_ID."""
-    config_obj = ServerConfig(mysql_connection=MYSQL_CONN)
+    config_obj = ServerConfig(mysql_connection=MYSQL_CONN, hash_function=create_hash)
     config = config_obj.load()
     if server_id in config:
         click.echo(f"Server ID '{server_id}' already exists.")
@@ -42,7 +42,7 @@ def add_server(server_id):
 @click.argument("server_id")
 def remove_server(server_id):
     """Remove the server with the specified SERVER_ID."""
-    config_obj = ServerConfig(mysql_connection=MYSQL_CONN)
+    config_obj = ServerConfig(mysql_connection=MYSQL_CONN, hash_function=create_hash)
     config = config_obj.load()
     if server_id not in config:
         click.echo(f"Server ID '{server_id}' does not exist.")
@@ -56,7 +56,7 @@ def remove_server(server_id):
 def invite_admin(email):
     """Generate an invitation link to add a new admin."""
     token = secrets.token_urlsafe(30)
-    token_db = TokenSystemDB(mysql_connection=MYSQL_CONN)
+    token_db = TokenSystemDB(mysql_connection=MYSQL_CONN, hash_function=create_hash)
     extra = {"invite_type": "admin", "invite_email": email}
     token_db.create_token(email, token, server_id="invite", ttl=3600, extra_data=extra)
     link = f"{INVITE_BASE_URL}/invite/{token}"
@@ -69,7 +69,7 @@ def invite_admin(email):
 def invite_manager(email, servers):
     """Generate an invitation link for a manager to given SERVERS."""
     token = secrets.token_urlsafe(30)
-    token_db = TokenSystemDB(mysql_connection=MYSQL_CONN)
+    token_db = TokenSystemDB(mysql_connection=MYSQL_CONN, hash_function=create_hash)
     extra = {"invite_type": "manager", "invite_email": email, "servers": list(servers)}
     token_db.create_token(email, token, server_id="invite", ttl=3600, extra_data=extra)
     link = f"{INVITE_BASE_URL}/invite/{token}"
@@ -80,7 +80,7 @@ def invite_manager(email, servers):
 @click.argument("email")
 def remove_admin_cmd(email):
     """Remove admin privileges for a user with the specified EMAIL."""
-    admin_db = AdminDB(mysql_connection=MYSQL_CONN)
+    admin_db = AdminDB(mysql_connection=MYSQL_CONN, hash_function=create_hash)
     data = admin_db.load()
     removed = False
     for sub, record in list(data.items()):
@@ -97,7 +97,7 @@ def remove_admin_cmd(email):
 @click.argument("email")
 def remove_manager_cmd(email):
     """Remove manager privileges for a user with the specified EMAIL."""
-    admin_db = AdminDB(mysql_connection=MYSQL_CONN)
+    admin_db = AdminDB(mysql_connection=MYSQL_CONN, hash_function=create_hash)
     data = admin_db.load()
     removed = False
     for sub, record in list(data.items()):
