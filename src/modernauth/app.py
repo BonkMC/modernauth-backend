@@ -48,8 +48,14 @@ userdb = UserDB(
     mysql_connection=os.getenv("MYSQL"),
     hash_function=create_hash
 )
-tokens_db = TokenSystemDB(mysql_connection=os.getenv("MYSQL"))
-admin_db = AdminDB(mysql_connection=os.getenv("MYSQL"))
+tokens_db = TokenSystemDB(
+    mysql_connection=os.getenv("MYSQL"),
+    hash_function=create_hash
+)
+admin_db = AdminDB(
+    mysql_connection=os.getenv("MYSQL"),
+    hash_function=create_hash
+)
 
 @app.route("/developers/")
 def developers():

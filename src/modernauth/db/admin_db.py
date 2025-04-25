@@ -3,102 +3,100 @@ from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
 class AdminDB:
-    def __init__(self, mysql_connection):
+    def __init__(self, mysql_connection, hash_function):
         # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
-        # Define the "admindb" table with user_sub as primary key.
+        self.hash = hash_function
+
+        # Store only hashed user_sub as the key
         self.admin_table = Table(
             'admindb', self.metadata,
-            Column('user_sub', String(255), primary_key=True, nullable=False),
-            Column('data', String(4096))  # Stores the admin record as a JSON string.
+            Column('user_sub', String(255), primary_key=True, nullable=False),  # hashed sub
+            Column('data', String(4096))  # JSON record
         )
         self.metadata.create_all(self.engine)
 
+    def _h(self, sub: str) -> str:
+        return self.hash(sub)
+
     def load(self):
         """
-        Reads all admin data from the MySQL table and returns a dictionary.
+        Returns { hashed_sub: record_dict }
         """
         data = {}
         try:
             with self.engine.connect() as conn:
-                result = conn.execute(self.admin_table.select()).mappings()
-                for row in result:
+                for row in conn.execute(self.admin_table.select()).mappings():
                     try:
-                        record = json.loads(row['data'])
+                        rec = json.loads(row['data'])
                     except Exception:
-                        record = {}
-                    data[row['user_sub']] = record
-            return data
+                        rec = {}
+                    data[row['user_sub']] = rec
         except SQLAlchemyError:
             return {}
+        return data
 
     def save(self, data):
         """
-        Clears the current MySQL table and repopulates it using the given data dictionary.
+        Accepts { hashed_sub: record_dict } and writes it back.
         """
         try:
             with self.engine.begin() as conn:
                 conn.execute(self.admin_table.delete())
-                for user_sub, record in data.items():
-                    rec_json = json.dumps(record)
-                    ins = self.admin_table.insert().values(
-                        user_sub=user_sub,
-                        data=rec_json
+                for hsub, rec in data.items():
+                    conn.execute(
+                        self.admin_table.insert().values(
+                            user_sub=hsub,
+                            data=json.dumps(rec)
+                        )
                     )
-                    conn.execute(ins)
-            return True
         except SQLAlchemyError:
             return False
+        return True
 
     def is_admin(self, user_sub):
         data = self.load()
-        admin = data.get(user_sub)
-        if admin:
-            return admin.get("is_admin", False)
-        return False
+        rec = data.get(self._h(user_sub))
+        return bool(rec and rec.get("is_admin", False))
 
     def is_manager(self, user_sub):
         data = self.load()
-        admin = data.get(user_sub)
-        if admin:
-            # A manager is defined as not being a full admin but having an allowed server list.
-            return not admin.get("is_admin", False) and bool(admin.get("servers"))
-        return False
+        rec = data.get(self._h(user_sub))
+        return bool(rec and not rec.get("is_admin", False) and rec.get("servers"))
 
     def get_accessible_servers(self, user_sub):
-        data = self.load()
-        admin = data.get(user_sub)
-        if admin:
-            if admin.get("is_admin", False):
-                return "all"  # signifies full access to all servers
-            else:
-                return admin.get("servers", [])
-        return []
+        rec = self.load().get(self._h(user_sub), {})
+        if rec.get("is_admin"):
+            return "all"
+        return rec.get("servers", [])
 
     def set_admin(self, user_sub, is_admin, servers=None, email=""):
         if servers is None:
             servers = []
         data = self.load()
-        data[user_sub] = {"is_admin": is_admin, "servers": servers, "email": email}
-        self.save(data)
+        data[self._h(user_sub)] = {
+            "is_admin": is_admin,
+            "servers": servers,
+            "email": email
+        }
+        return self.save(data)
 
     def add_access(self, user_sub, email, server_id, is_admin=False):
         data = self.load()
-        # Prevent duplicate email for the same server.
-        for uid, record in data.items():
-            if server_id in record.get("servers", []):
-                if record.get("email") == email:
-                    return False
-        if user_sub in data:
-            record = data[user_sub]
-            record["email"] = email
-            if server_id not in record.get("servers", []):
-                record["servers"].append(server_id)
-            if is_admin:
-                record["is_admin"] = True
-        else:
-            data[user_sub] = {"is_admin": is_admin, "servers": [server_id], "email": email}
-        self.save(data)
-        return True
+        # Prevent duplicate email on same server
+        for rec in data.values():
+            if server_id in rec.get("servers", []) and rec.get("email") == email:
+                return False
+
+        hsub = self._h(user_sub)
+        rec = data.get(hsub, {"is_admin": False, "servers": [], "email": email})
+        rec["email"] = email
+        if server_id not in rec["servers"]:
+            rec["servers"].append(server_id)
+        if is_admin:
+            rec["is_admin"] = True
+
+        data[hsub] = rec
+        return self.save(data)

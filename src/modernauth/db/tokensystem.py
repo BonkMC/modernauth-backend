@@ -4,29 +4,32 @@ from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
 class TokenSystemDB:
-    def __init__(self, mysql_connection):
+    def __init__(self, mysql_connection, hash_function):
         # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
-        # Define the "tokensystem" table with token as primary key.
+        self.hash = hash_function
+
+        # Now storing only the hashed token as the primary key:
         self.tokens = Table(
             'tokensystem', self.metadata,
-            Column('token', String(255), primary_key=True, nullable=False),
-            Column('data', String(4096))  # Stores the token data as a JSON string.
+            Column('token', String(255), primary_key=True, nullable=False),  # hashed
+            Column('data', String(4096))  # JSON string of token data
         )
         self.metadata.create_all(self.engine)
 
+    def _h(self, token: str) -> str:
+        return self.hash(token)
+
     def load(self):
         """
-        Reads all token data from the MySQL table and returns a dictionary in the format:
-        { token: token_data_dict }
+        Returns a dict of { hashed_token: token_data_dict }.
         """
         data = {}
         try:
             with self.engine.connect() as conn:
-                result = conn.execute(self.tokens.select()).mappings()
-                for row in result:
+                for row in conn.execute(self.tokens.select()).mappings():
                     try:
                         token_data = json.loads(row['data'])
                     except Exception:
@@ -38,20 +41,15 @@ class TokenSystemDB:
 
     def save(self, data):
         """
-        Clears the current MySQL table and repopulates it using the given data dictionary.
-        The data dictionary is expected to be in the format:
-        { token: token_data_dict }
+        Clears the table and writes { hashed_token: token_data } back.
         """
         try:
             with self.engine.begin() as conn:
-                # Clear existing data.
                 conn.execute(self.tokens.delete())
-                # Insert every token from the dictionary.
-                for token, token_data in data.items():
-                    token_json = json.dumps(token_data)
+                for htok, token_data in data.items():
                     ins = self.tokens.insert().values(
-                        token=token,
-                        data=token_json
+                        token=htok,
+                        data=json.dumps(token_data)
                     )
                     conn.execute(ins)
             return True
@@ -63,6 +61,7 @@ class TokenSystemDB:
         return {k: v for k, v in data.items() if v.get("expiration_time", 0) > now}
 
     def create_token(self, username, token, server_id, ttl=600, extra_data=None):
+        htok = self._h(token)
         data = self.load()
         data = self._purge_expired_tokens(data)
         token_data = {
@@ -73,14 +72,15 @@ class TokenSystemDB:
         }
         if extra_data:
             token_data.update(extra_data)
-        data[token] = token_data
+        data[htok] = token_data
         self.save(data)
-        return token
+        return token  # still return the plain token
 
     def remove_token(self, token):
+        htok = self._h(token)
         data = self.load()
-        if token in data:
-            del data[token]
+        if htok in data:
+            del data[htok]
             self.save(data)
 
     def purge_expired_tokens(self):
@@ -89,20 +89,23 @@ class TokenSystemDB:
         self.save(data)
 
     def check_token(self, token):
+        htok = self._h(token)
         data = self.load()
         data = self._purge_expired_tokens(data)
         self.save(data)
-        return data[token]["username"] if token in data else None
+        return data[htok]["username"] if htok in data else None
 
     def get_token_data(self, token):
+        htok = self._h(token)
         data = self.load()
         data = self._purge_expired_tokens(data)
         self.save(data)
-        return data.get(token, None)
+        return data.get(htok)
 
     def authorize_token(self, token):
+        htok = self._h(token)
         data = self.load()
         data = self._purge_expired_tokens(data)
-        if token in data:
-            data[token]["authorized"] = True
+        if htok in data:
+            data[htok]["authorized"] = True
             self.save(data)
