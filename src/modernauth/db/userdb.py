@@ -12,8 +12,8 @@ class UserDB:
         self.users = Table(
             'users', self.metadata,
             Column('server_id', String(255), primary_key=True, nullable=False),
-            Column('username', String(255), primary_key=True, nullable=False),  # hash(username)
-            Column('sub', String(255), nullable=False)                         # hash(sub)
+            Column('username', String(255), primary_key=True, nullable=False),
+            Column('sub', String(255), nullable=False)
         )
         self.metadata.create_all(self.engine)
 
@@ -21,9 +21,6 @@ class UserDB:
         return self.hash(value)
 
     def signup(self, server_id: str, username: str, sub: str) -> bool:
-        """
-        Hashes username & sub, then inserts if username-hash not already taken.
-        """
         h_sub = self._h(sub)
         try:
             with self.engine.begin() as conn:

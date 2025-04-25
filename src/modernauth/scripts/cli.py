@@ -4,8 +4,6 @@ import secrets
 import string
 from dotenv import load_dotenv
 from modernauth.app import create_hash
-from modernauth.db.admin_db import AdminDB
-from modernauth.db.tokensystem import TokenSystemDB
 from modernauth.db.server_config import ServerConfig
 
 load_dotenv()
@@ -51,64 +49,6 @@ def remove_server(server_id):
     config_obj.save(config)
     click.echo(f"Removed server '{server_id}' successfully.")
 
-@cli.command("invite-admin")
-@click.argument("email")
-def invite_admin(email):
-    """Generate an invitation link to add a new admin."""
-    token = secrets.token_urlsafe(30)
-    token_db = TokenSystemDB(mysql_connection=MYSQL_CONN, hash_function=create_hash)
-    extra = {"invite_type": "admin", "invite_email": email}
-    token_db.create_token(email, token, server_id="invite", ttl=3600, extra_data=extra)
-    link = f"{INVITE_BASE_URL}/invite/{token}"
-    click.echo("Admin invitation link generated:")
-    click.echo(link)
-
-@cli.command("invite-manager")
-@click.argument("email")
-@click.argument("servers", nargs=-1)
-def invite_manager(email, servers):
-    """Generate an invitation link for a manager to given SERVERS."""
-    token = secrets.token_urlsafe(30)
-    token_db = TokenSystemDB(mysql_connection=MYSQL_CONN, hash_function=create_hash)
-    extra = {"invite_type": "manager", "invite_email": email, "servers": list(servers)}
-    token_db.create_token(email, token, server_id="invite", ttl=3600, extra_data=extra)
-    link = f"{INVITE_BASE_URL}/invite/{token}"
-    click.echo("Manager invitation link generated:")
-    click.echo(link)
-
-@cli.command("remove-admin")
-@click.argument("email")
-def remove_admin_cmd(email):
-    """Remove admin privileges for a user with the specified EMAIL."""
-    admin_db = AdminDB(mysql_connection=MYSQL_CONN, hash_function=create_hash)
-    data = admin_db.load()
-    removed = False
-    for sub, record in list(data.items()):
-        if record.get("email") == email and record.get("is_admin"):
-            del data[sub]
-            removed = True
-    admin_db.save(data)
-    if removed:
-        click.echo(f"Removed admin privileges for '{email}'.")
-    else:
-        click.echo(f"No admin found with email '{email}'.")
-
-@cli.command("remove-manager")
-@click.argument("email")
-def remove_manager_cmd(email):
-    """Remove manager privileges for a user with the specified EMAIL."""
-    admin_db = AdminDB(mysql_connection=MYSQL_CONN, hash_function=create_hash)
-    data = admin_db.load()
-    removed = False
-    for sub, record in list(data.items()):
-        if record.get("email") == email and not record.get("is_admin"):
-            del data[sub]
-            removed = True
-    admin_db.save(data)
-    if removed:
-        click.echo(f"Removed manager privileges for '{email}'.")
-    else:
-        click.echo(f"No manager found with email '{email}'.")
 
 if __name__ == "__main__":
     cli()

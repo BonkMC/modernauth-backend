@@ -4,23 +4,18 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class ServerConfig:
     def __init__(self, mysql_connection, hash_function):
-        # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
         self.create_hash = hash_function
-        # Define the "server_config" table with server_id as primary key.
         self.config_table = Table(
             'server_config', self.metadata,
             Column('server_id', String(255), primary_key=True, nullable=False),
-            Column('config', String(4096))  # Stores the server config as a JSON string.
+            Column('config', String(4096))
         )
         self.metadata.create_all(self.engine)
 
     def load(self):
-        """
-        Reads all server configuration from the MySQL table and returns a dictionary.
-        """
         try:
             data = {}
             with self.engine.connect() as conn:
@@ -36,9 +31,6 @@ class ServerConfig:
             return {}
 
     def save(self, config):
-        """
-        Clears the current MySQL table and repopulates it using the given config dictionary.
-        """
         try:
             with self.engine.begin() as conn:
                 conn.execute(self.config_table.delete())

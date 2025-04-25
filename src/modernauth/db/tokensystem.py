@@ -5,17 +5,15 @@ from sqlalchemy.exc import SQLAlchemyError
 
 class TokenSystemDB:
     def __init__(self, mysql_connection, hash_function):
-        # Ensure the connection string uses PyMySQL.
         mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
         self.engine = create_engine(mysql_connection, echo=False)
         self.metadata = MetaData()
         self.hash = hash_function
 
-        # Now storing only the hashed token as the primary key:
         self.tokens = Table(
             'tokensystem', self.metadata,
-            Column('token', String(255), primary_key=True, nullable=False),  # hashed
-            Column('data', String(4096))  # JSON string of token data
+            Column('token', String(255), primary_key=True, nullable=False),
+            Column('data', String(4096))
         )
         self.metadata.create_all(self.engine)
 
@@ -23,9 +21,6 @@ class TokenSystemDB:
         return self.hash(token)
 
     def load(self):
-        """
-        Returns a dict of { hashed_token: token_data_dict }.
-        """
         data = {}
         try:
             with self.engine.connect() as conn:
@@ -40,9 +35,6 @@ class TokenSystemDB:
         return data
 
     def save(self, data):
-        """
-        Clears the table and writes { hashed_token: token_data } back.
-        """
         try:
             with self.engine.begin() as conn:
                 conn.execute(self.tokens.delete())
@@ -74,7 +66,7 @@ class TokenSystemDB:
             token_data.update(extra_data)
         data[htok] = token_data
         self.save(data)
-        return token  # still return the plain token
+        return token
 
     def remove_token(self, token):
         htok = self._h(token)

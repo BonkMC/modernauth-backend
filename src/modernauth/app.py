@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from urllib.parse import urlencode
 from modernauth.db.userdb import UserDB
 from modernauth.db.tokensystem import TokenSystemDB
-from modernauth.db.admin_db import AdminDB
 from modernauth.db.server_config import ServerConfig
 import hashlib
 
@@ -52,10 +51,6 @@ tokens_db = TokenSystemDB(
     mysql_connection=os.getenv("MYSQL"),
     hash_function=create_hash
 )
-admin_db = AdminDB(
-    mysql_connection=os.getenv("MYSQL"),
-    hash_function=create_hash
-)
 
 @app.route("/developers/")
 def developers():
@@ -74,11 +69,8 @@ def serve_assets(path):
 @app.route("/")
 def home():
     if "user" in session:
-        user_sub = session["user"]["sub"]
-        accessible = admin_db.get_accessible_servers(user_sub)
-        admin_access = bool(accessible)
-        return render_template("home.html", user=session["user"].get("name"), admin_access=admin_access)
-    return render_template("home.html", user=None, admin_access=False)
+        return render_template("home.html", user=session["user"].get("name"))
+    return render_template("home.html", user=None)
 
 
 @app.route("/whoweare")
@@ -166,30 +158,6 @@ def auth_token(server_id, token):
     )
 
 
-@app.route("/invite/<token>")
-def accept_invite(token):
-    token_data = tokens_db.get_token_data(token)
-    if not token_data or "invite_type" not in token_data:
-        return render_template("error.html", message="Invalid or expired invitation token.")
-    user = session.get("user")
-    if not user or "sub" not in user:
-        session["incoming_invite_token"] = token
-        return redirect(url_for("login"))
-    invite_type = token_data.get("invite_type")
-    invite_email = token_data.get("invite_email")
-    if invite_type == "admin":
-        admin_db.set_admin(user["sub"], True, [], email=invite_email)
-        message = "Invitation accepted. You are now an admin with full access."
-    elif invite_type == "manager":
-        servers = token_data.get("servers", [])
-        admin_db.set_admin(user["sub"], False, servers, email=invite_email)
-        message = f"Invitation accepted. You now have manager access to servers: {', '.join(servers)}."
-    else:
-        return render_template("error.html", message="Unknown invitation type.")
-    tokens_db.remove_token(token)
-    return render_template("success.html", message=message)
-
-
 @app.route("/api/createtoken", methods=["POST"])
 def create_token():
     data = request.get_json()
@@ -240,9 +208,7 @@ def settings():
     if "user" not in session or "sub" not in session["user"]:
         return redirect(url_for("login"))
     user_sub = session["user"]["sub"]
-    accessible = admin_db.get_accessible_servers(user_sub)
-    admin_access = (accessible != [])
-    return render_template("settings.html", user=session["user"], admin_access=admin_access)
+    return render_template("settings.html", user=session["user"])
 
 
 @app.route("/link/<provider>")
@@ -324,75 +290,6 @@ def link_callback(provider):
     session["user"]["linked_accounts"][provider] = linking_info
     message = f"Successfully linked {provider.capitalize()} account."
     return render_template("success.html", message=message)
-
-
-@app.route("/admin", methods=["GET"])
-def admin_panel():
-    if "user" not in session or "sub" not in session["user"]:
-        return redirect(url_for("login"))
-    user_sub = session["user"]["sub"]
-    accessible = admin_db.get_accessible_servers(user_sub)
-    if not accessible:
-        return render_template("error.html", message="You do not have admin or manager privileges.")
-    config = server_config_obj.load()
-    user_data = userdb.load()
-    all_servers = set(config.keys()) | set(user_data.keys())
-    if accessible == "all":
-        servers = list(all_servers)
-    else:
-        servers = [s for s in all_servers if s in accessible]
-    selected_server = request.args.get("server_id")
-    users = {}
-    if selected_server:
-        db_data = userdb.load()
-        if selected_server in db_data:
-            users = db_data[selected_server]
-    is_full_admin = admin_db.is_admin(user_sub)
-    return render_template("admin.html", servers=servers, selected_server=selected_server, users=users,
-                           is_full_admin=is_full_admin)
-
-
-@app.route("/admin/reset_code", methods=["POST"])
-def reset_code():
-    if "user" not in session or "sub" not in session["user"]:
-        return jsonify({"error": "Unauthorized"}), 401
-    user_sub = session["user"]["sub"]
-    accessible = admin_db.get_accessible_servers(user_sub)
-    if not accessible:
-        return jsonify({"error": "Unauthorized"}), 401
-    data = request.get_json()
-    server_id = data.get("server_id")
-    if not server_id:
-        return jsonify({"error": "Missing server_id"}), 400
-    if accessible != "all" and server_id not in accessible:
-        return jsonify({"error": "Access denied"}), 403
-    new_code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(100))
-    config = server_config_obj.load()
-    if server_id not in config:
-        return jsonify({"error": "Server not found"}), 404
-    config[server_id]["secret_key"] = new_code
-    server_config_obj.save(config)
-    return jsonify({"new_code": new_code})
-
-
-@app.route("/admin/unregister_user", methods=["POST"])
-def unregister_user():
-    if "user" not in session or "sub" not in session["user"]:
-        return redirect(url_for("login"))
-    user_sub = session["user"]["sub"]
-    accessible = admin_db.get_accessible_servers(user_sub)
-    if not accessible:
-        return render_template("error.html", message="Unauthorized")
-
-    server_id = request.form.get("server_id")
-    username  = request.form.get("username")
-    if not server_id or not username:
-        return render_template("error.html", message="Missing parameters.")
-    if accessible != "all" and server_id not in accessible:
-        return render_template("error.html", message="Access denied.")
-
-    userdb.delete(server_id, username)
-    return redirect(url_for("admin_panel", server_id=server_id))
 
 
 if __name__ == "__main__":
