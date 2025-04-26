@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 from modernauth.db.userdb import UserDB
 from modernauth.db.tokensystem import TokenSystemDB
 from modernauth.db.server_config import ServerConfig
+from modernauthdash.app import DASHBOARD_ID
 
 load_dotenv()
 app = Flask(__name__)
@@ -108,6 +109,7 @@ def login():
 
 @app.route("/callback")
 def callback():
+    DASHBOARD_ID = os.getenv("DASHBOARD_ID")
     # ensure it was our dashboard that kicked off SSO
     if session.get("login_server") != DASHBOARD_ID:
         return "Invalid SSO attempt", 403
