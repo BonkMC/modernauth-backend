@@ -76,6 +76,7 @@ def home():
 def page_not_found(error):
     return render_template('404.html'), 404
 
+DASHBOARD_ID = os.getenv("DASHBOARD_ID")
 
 @app.route("/login")
 def login():
@@ -108,7 +109,7 @@ def login():
 
 @app.route("/callback")
 def callback():
-    DASHBOARD_ID = os.getenv("DASHBOARD_ID")
+
     # ensure it was our dashboard that kicked off SSO
     if session.get("login_server") != DASHBOARD_ID:
         return "Invalid SSO attempt", 403
