@@ -77,13 +77,29 @@ def page_not_found(error):
     return render_template('404.html'), 404
 
 
-# ——— Login / Logout / Callback —————————————————
 @app.route("/login")
 def login():
-    # capture where we should return after Auth0
-    next_url = request.args.get('next')
-    if next_url:
-        session['login_next'] = next_url
+    """
+    /login?next=<callback_url>&server_id=<id>&secret=<plain_secret>
+    """
+    next_url   = request.args.get("next")
+    server_id  = request.args.get("server_id")
+    plain_code = request.args.get("secret")
+
+    # verify they are our dashboard
+    expected_hash = server_config_obj.get_secret(server_id)
+    if (
+        server_id  != DASHBOARD_ID or
+        not plain_code or
+        create_hash(plain_code) != expected_hash
+    ):
+        return "Dashboard authentication failed", 403
+
+    # stash for callback
+    session["login_next"]   = next_url
+    session["login_server"] = server_id
+
+    # now send into Auth0
     return oauth.auth0.authorize_redirect(
         redirect_uri=url_for("callback", _external=True),
         prompt="login"
@@ -92,28 +108,26 @@ def login():
 
 @app.route("/callback")
 def callback():
-    # finish Auth0 dance
+    # ensure it was our dashboard that kicked off SSO
+    if session.get("login_server") != DASHBOARD_ID:
+        return "Invalid SSO attempt", 403
+
     token_response = oauth.auth0.authorize_access_token()
     userinfo = token_response["userinfo"]
+
+    # set our own session
     session["user"] = {
         "sub":   userinfo["sub"],
         "name":  userinfo.get("name"),
-        "email": userinfo.get("email")
+        "email": userinfo.get("email"),
     }
 
-    # ——— Legacy token‐auth (createtoken / auth/<sid>/<token>) —————————————————————
-    if "incoming_token" in session and "incoming_server_id" in session:
-        tk  = session.pop("incoming_token")
-        sid = session.pop("incoming_server_id")
-        return redirect(url_for("auth_token", server_id=sid, token=tk))
+    # return to the dashboard’s callback handler
+    next_url = session.pop("login_next", None)
+    if next_url:
+        return redirect(f"{next_url}?username={session['user']['name']}")
 
-    # ——— Dashboard SSO ——————————————————————————————
-    if "login_next" in session:
-        dest = session.pop("login_next")
-        # append username so dashboard can set its own session
-        return redirect(f"{dest}?username={session['user']['name']}")
-
-    # ——— Fallback ——————————————————————————————
+    # fallback
     return redirect(url_for("home"))
 
 
@@ -299,6 +313,7 @@ def link_callback(provider):
     session["user"]["linked_accounts"][provider] = linking_info
     message = f"Successfully linked {provider.capitalize()} account."
     return render_template("success.html", message=message)
+
 
 
 if __name__ == "__main__":
