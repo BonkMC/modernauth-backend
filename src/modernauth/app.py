@@ -8,7 +8,6 @@ from urllib.parse import urlencode
 from modernauth.db.userdb import UserDB
 from modernauth.db.tokensystem import TokenSystemDB
 from modernauth.db.server_config import ServerConfig
-from modernauthdash.app import DASHBOARD_ID
 
 load_dotenv()
 app = Flask(__name__)
