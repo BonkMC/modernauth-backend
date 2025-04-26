@@ -4,6 +4,7 @@
 .directory
 .idea
 __pycache__
+whoweare.txt
 build/
 dist/
 *.egg-info/

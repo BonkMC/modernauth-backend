@@ -1,4 +1,4 @@
-import os, requests, secrets, string
+import os, requests, secrets, string, hashlib
 from flask import Flask, redirect, session, url_for, request, render_template, jsonify, send_from_directory
 from authlib.integrations.flask_client import OAuth
 from flask_limiter import Limiter
@@ -8,7 +8,6 @@ from urllib.parse import urlencode
 from modernauth.db.userdb import UserDB
 from modernauth.db.tokensystem import TokenSystemDB
 from modernauth.db.server_config import ServerConfig
-import hashlib
 
 load_dotenv()
 app = Flask(__name__)
@@ -73,18 +72,18 @@ def home():
     return render_template("home.html", user=None)
 
 
-@app.route("/whoweare")
-def who_we_are():
-    return render_template("whoweare.html")
-
-
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('404.html'), 404
 
 
+# ——— Login / Logout / Callback —————————————————
 @app.route("/login")
 def login():
+    # capture where we should return after Auth0
+    next_url = request.args.get('next')
+    if next_url:
+        session['login_next'] = next_url
     return oauth.auth0.authorize_redirect(
         redirect_uri=url_for("callback", _external=True),
         prompt="login"
@@ -93,20 +92,28 @@ def login():
 
 @app.route("/callback")
 def callback():
+    # finish Auth0 dance
     token_response = oauth.auth0.authorize_access_token()
     userinfo = token_response["userinfo"]
     session["user"] = {
-        "sub": userinfo["sub"],
-        "name": userinfo.get("name"),
+        "sub":   userinfo["sub"],
+        "name":  userinfo.get("name"),
         "email": userinfo.get("email")
     }
+
+    # ——— Legacy token‐auth (createtoken / auth/<sid>/<token>) —————————————————————
     if "incoming_token" in session and "incoming_server_id" in session:
-        tk = session.pop("incoming_token")
+        tk  = session.pop("incoming_token")
         sid = session.pop("incoming_server_id")
         return redirect(url_for("auth_token", server_id=sid, token=tk))
-    if "incoming_invite_token" in session:
-        tk = session.pop("incoming_invite_token")
-        return redirect(url_for("accept_invite", token=tk))
+
+    # ——— Dashboard SSO ——————————————————————————————
+    if "login_next" in session:
+        dest = session.pop("login_next")
+        # append username so dashboard can set its own session
+        return redirect(f"{dest}?username={session['user']['name']}")
+
+    # ——— Fallback ——————————————————————————————
     return redirect(url_for("home"))
 
 
@@ -117,7 +124,9 @@ def logout():
         "returnTo": url_for("home", _external=True),
         "client_id": os.getenv("AUTH0_CLIENT_ID")
     }
-    return redirect(f"https://{os.getenv('AUTH0_DOMAIN')}/v2/logout?{urlencode(params)}")
+    return redirect(
+        f"https://{os.getenv('AUTH0_DOMAIN')}/v2/logout?{urlencode(params)}"
+    )
 
 
 @app.route("/auth/<server_id>/<token>")
