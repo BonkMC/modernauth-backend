@@ -75,10 +75,8 @@ def page_not_found(error):
     return render_template('404.html'), 404
 
 
-# ——— Login / Logout / Callback —————————————————
 @app.route("/login")
 def login():
-    # capture where we should return after Auth0
     next_url = request.args.get('next')
     if next_url:
         session['login_next'] = next_url
@@ -90,7 +88,6 @@ def login():
 
 @app.route("/callback")
 def callback():
-    # finish Auth0 dance
     token_response = oauth.auth0.authorize_access_token()
     userinfo = token_response["userinfo"]
     session["user"] = {
@@ -99,19 +96,15 @@ def callback():
         "email": userinfo.get("email")
     }
 
-    # ——— Legacy token‐auth (createtoken / auth/<sid>/<token>) —————————————————————
     if "incoming_token" in session and "incoming_server_id" in session:
         tk  = session.pop("incoming_token")
         sid = session.pop("incoming_server_id")
         return redirect(url_for("auth_token", server_id=sid, token=tk))
 
-    # ——— Dashboard SSO ——————————————————————————————
     if "login_next" in session:
         dest = session.pop("login_next")
-        # append username so dashboard can set its own session
         return redirect(f"{dest}?username={session['user']['name']}")
 
-    # ——— Fallback ——————————————————————————————
     return redirect(url_for("home"))
 
 
