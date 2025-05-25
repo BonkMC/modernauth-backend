@@ -1,6 +1,6 @@
-# ModernAuth
+# The ModernAuth Project
 
-ModernAuth is a Python-based authentication and user management system built using Flask for offline-mode minecraft servers. It provides features such as user linking, admin management, and secure token handling.
+ModernAuth is a Python-based authentication and user management system built using Flask for offline-mode Minecraft servers. It provides features such as user linking, admin management, and secure token handling.
 
 ## Features
 
