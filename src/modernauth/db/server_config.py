@@ -2,10 +2,16 @@ import json
 from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
+def make_engine_with_env_ssl(url):
+    return create_engine(
+        url=url.replace("mysql://", "mysql+pymysql://"),
+        echo=False
+    )
+
+
 class ServerConfig:
     def __init__(self, mysql_connection, hash_function):
-        mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
-        self.engine = create_engine(mysql_connection, echo=False)
+        self.engine = make_engine_with_env_ssl(mysql_connection)
         self.metadata = MetaData()
         self.create_hash = hash_function
         self.config_table = Table(

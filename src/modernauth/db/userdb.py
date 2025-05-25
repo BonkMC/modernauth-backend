@@ -1,14 +1,17 @@
-import sqlalchemy
 from sqlalchemy import create_engine, Table, Column, String, MetaData
 from sqlalchemy.exc import SQLAlchemyError
 
+def make_engine_with_env_ssl(url):
+    return create_engine(
+        url=url.replace("mysql://", "mysql+pymysql://"),
+        echo=False
+    )
+
 class UserDB:
     def __init__(self, mysql_connection, hash_function):
-        mysql_connection = mysql_connection.replace("mysql://", "mysql+pymysql://")
-        self.engine = create_engine(mysql_connection, echo=False)
+        self.engine = make_engine_with_env_ssl(mysql_connection)
         self.metadata = MetaData()
         self.hash = hash_function
-
         self.users = Table(
             'users', self.metadata,
             Column('server_id', String(255), primary_key=True, nullable=False),

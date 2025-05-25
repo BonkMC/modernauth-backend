@@ -1,4 +1,4 @@
-import os, requests, secrets, string, hashlib
+import os, requests, hashlib
 from flask import Flask, redirect, session, url_for, request, render_template, jsonify, send_from_directory
 from authlib.integrations.flask_client import OAuth
 from flask_limiter import Limiter
@@ -8,7 +8,6 @@ from urllib.parse import urlencode
 from modernauth.db.userdb import UserDB
 from modernauth.db.tokensystem import TokenSystemDB
 from modernauth.db.server_config import ServerConfig
-
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY")
@@ -50,7 +49,6 @@ tokens_db = TokenSystemDB(
     mysql_connection=os.getenv("MYSQL"),
     hash_function=create_hash
 )
-
 @app.route("/developers/")
 def developers():
     return redirect('https://docs.bonkmc.org', code=302)
