@@ -161,21 +161,21 @@ def auth_token(server_id, token):
 @app.route("/api/createtoken", methods=["POST"])
 def create_token():
     data = request.get_json()
-    generic_response = {"message": "If your token is valid, you will see the appropriate behavior."}
+    not_authorized_response = {"message": "Your token or was not valid, or you are not authorized to use this endpoint."}
     if not data:
-        return jsonify(generic_response), 200
+        return jsonify(not_authorized_response), 403
     server_id = data.get("server_id")
     token = data.get("token")
     username = data.get("username")
     if not server_id or not token or not username:
-        return jsonify(generic_response), 200
+        return jsonify(not_authorized_response), 403
     config = server_config_obj.load()
     expected_secret = config.get(server_id, {}).get("secret_key")
     provided_secret = create_hash(request.headers.get("X-Server-Secret"))
     if not provided_secret or provided_secret != expected_secret:
-        return jsonify(generic_response), 200
+        return jsonify(not_authorized_response), 403
     tokens_db.create_token(username, token, server_id=server_id)
-    return jsonify(generic_response), 200
+    return jsonify({"message": "Token created successfully."}), 200
 
 
 @app.route("/api/authstatus/<server_id>/<token>", methods=["GET"])
